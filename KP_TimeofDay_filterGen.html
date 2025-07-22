@@ -1,0 +1,2409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ultimate Gradient Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8f9fa;
+            min-height: 100vh;
+            padding: 20px;
+            color: #333;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+            border: 1px solid #e9ecef;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 32px;
+            font-size: 2rem;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .mode-selector {
+            display: flex;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .mode-btn {
+            padding: 12px 24px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+            font-size: 1rem;
+        }
+
+        .mode-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .mode-btn:hover:not(.active) {
+            background: #f9fafb;
+            border-color: #d1d5db;
+        }
+
+        .mode-content {
+            display: none;
+        }
+
+        .mode-content.active {
+            display: block;
+        }
+
+        /* Common styles */
+        .gradient-display-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 32px 0;
+        }
+
+        .gradient-display {
+            width: 400px;
+            height: 533px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
+            border: 1px solid #e5e7eb;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .time-badge {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            backdrop-filter: blur(4px);
+        }
+
+        /* Image Mode Styles */
+        .upload-section {
+            margin-bottom: 30px;
+        }
+
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            border-radius: 12px;
+            padding: 48px 24px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fafbfc;
+        }
+
+        .upload-area:hover {
+            border-color: #9ca3af;
+            background: #f3f4f6;
+            transform: translateY(-2px);
+        }
+
+        .upload-area.dragover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            transform: scale(1.02);
+        }
+
+        #fileInput {
+            display: none;
+        }
+
+        .upload-text {
+            font-size: 1.1em;
+            margin-bottom: 8px;
+            color: #4b5563;
+            font-weight: 500;
+        }
+
+        .upload-hint {
+            color: #9ca3af;
+            font-size: 0.9em;
+        }
+
+        .preview-section {
+            display: none;
+            margin-bottom: 24px;
+            text-align: center;
+        }
+
+        .image-preview {
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+            margin-bottom: 16px;
+        }
+
+        .controls {
+            display: none;
+            gap: 24px;
+            align-items: center;
+            margin-bottom: 24px;
+            padding: 24px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 1px solid #e9ecef;
+            flex-wrap: wrap;
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        label {
+            font-weight: 500;
+            color: #4b5563;
+            font-size: 0.9em;
+            white-space: nowrap;
+        }
+
+        input[type="range"] {
+            width: 120px;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px;
+            height: 18px;
+            background: #6366f1;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            background: #6366f1;
+            border-radius: 50%;
+            cursor: pointer;
+            border: none;
+        }
+
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: #374151;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.9em;
+        }
+
+        button:hover {
+            background: #111827;
+            transform: translateY(-1px);
+        }
+
+        .value-display {
+            font-size: 0.85em;
+            color: #6b7280;
+            font-weight: 500;
+            min-width: 30px;
+        }
+
+        /* Time Mode Styles */
+        .time-controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+
+        .time-section, .effects-section {
+            background: #f8fafc;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .time-section h3, .effects-section h3 {
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 16px;
+        }
+
+        .time-controls {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .time-input {
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            font-size: 1.125rem;
+            outline: none;
+            transition: all 0.2s;
+        }
+
+        .time-input:focus {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .current-time-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .current-time-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+
+        .time-display {
+            color: #6b7280;
+            font-size: 1rem;
+            margin-top: 8px;
+        }
+
+        .effects-toggle {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 44px;
+            height: 24px;
+            background: #d1d5db;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .toggle-switch.active {
+            background: #3b82f6;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+
+        .toggle-switch.active::after {
+            transform: translateX(20px);
+        }
+
+        .effects-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .effects-control-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .effects-control-group label {
+            font-size: 0.875rem;
+            margin-bottom: 4px;
+        }
+
+        .effects-control-group select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            background: white;
+        }
+
+        .animation-section {
+            background: #f8fafc;
+            padding: 24px;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            margin-bottom: 24px;
+        }
+
+        .animation-section h3 {
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 16px;
+        }
+
+        .animation-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr auto auto;
+            gap: 16px;
+            align-items: end;
+            margin-bottom: 16px;
+        }
+
+        .animation-input-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .animation-input-group label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 4px;
+        }
+
+        .animation-input-group input,
+        .animation-input-group select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.875rem;
+        }
+
+        .play-btn, .stop-btn {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .play-btn:hover {
+            background: #2563eb;
+        }
+
+        .stop-btn {
+            background: #ef4444;
+        }
+
+        .stop-btn:hover {
+            background: #dc2626;
+        }
+
+        .animation-progress {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .animation-progress-bar {
+            height: 100%;
+            background: #3b82f6;
+            transition: width 0.1s linear;
+            width: 0%;
+        }
+
+        .presets-section {
+            margin-bottom: 24px;
+        }
+
+        .presets-section h3 {
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 12px;
+        }
+
+        .presets-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 8px;
+        }
+
+        .preset-btn {
+            padding: 10px 16px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            background: white;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .preset-btn:hover {
+            background: #f9fafb;
+            transform: translateY(-1px);
+        }
+
+        .preset-btn.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        /* Results Section */
+        .results-section {
+            display: none;
+            margin-top: 32px;
+        }
+
+        .gradient-info {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid #e9ecef;
+        }
+
+        .section-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #374151;
+            margin-bottom: 16px;
+        }
+
+        .color-palette {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+
+        .color-swatch {
+            width: 60px;
+            height: 60px;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .color-swatch:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        .color-swatch::after {
+            content: attr(data-color);
+            position: absolute;
+            bottom: -24px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7em;
+            color: #6b7280;
+            white-space: nowrap;
+        }
+
+        .css-output {
+            background: #1f2937;
+            color: #f9fafb;
+            padding: 24px;
+            border-radius: 8px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-size: 0.9em;
+            overflow-x: auto;
+            position: relative;
+            border: 1px solid #374151;
+        }
+
+        .copy-button {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            padding: 8px 16px;
+            font-size: 0.75em;
+            background: #4b5563;
+            border: none;
+            border-radius: 6px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-button:hover {
+            background: #6b7280;
+            transform: translateY(-1px);
+        }
+
+        .export-section {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid #e9ecef;
+            margin-top: 24px;
+        }
+
+        .export-section h3 {
+            font-size: 1.125rem;
+            font-weight: 500;
+            color: #374151;
+            margin-bottom: 16px;
+        }
+
+        .export-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .export-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 16px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            background: white;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+        }
+
+        .export-btn:hover {
+            background: #f9fafb;
+            border-color: #9ca3af;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .export-btn:active {
+            transform: translateY(0);
+        }
+
+        .export-btn .icon {
+            font-size: 1rem;
+        }
+
+        .size-selector {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .size-selector label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .size-selector select {
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            background: white;
+            min-width: 120px;
+        }
+
+        .format-selector {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .format-selector label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .format-options {
+            display: flex;
+            gap: 8px;
+        }
+
+        .format-option {
+            padding: 6px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            color: #374151;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.875rem;
+        }
+
+        .format-option.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .format-option:hover:not(.active) {
+            background: #f3f4f6;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+            
+            .time-controls-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .animation-controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .effects-controls {
+                grid-template-columns: 1fr;
+            }
+            
+            .mode-selector {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Ultimate Gradient Generator</h1>
+        
+        <div class="mode-selector">
+            <button class="mode-btn active" data-mode="image">🖼️ Image to Gradient</button>
+            <button class="mode-btn" data-mode="time">🌅 Time-Based Gradients</button>
+        </div>
+
+        <!-- Image Mode -->
+        <div class="mode-content active" id="image-mode">
+            <div class="upload-section">
+                <div class="upload-area" id="uploadArea">
+                    <div class="upload-text">Drop image here or click to browse</div>
+                    <div class="upload-hint">Supports JPG, PNG, WebP • Max 10MB</div>
+                </div>
+                <input type="file" id="fileInput" accept="image/*">
+            </div>
+
+            <div class="preview-section" id="previewSection">
+                <img id="imagePreview" class="image-preview" alt="Preview">
+            </div>
+
+            <div class="controls" id="imageControls">
+                <div class="control-group">
+                    <label>Colors: 3</label>
+                </div>
+                
+                <div class="control-group">
+                    <label for="atmosphericIntensity">Curve:</label>
+                    <input type="range" id="atmosphericIntensity" min="2" max="6" value="4" step="0.5">
+                    <span class="value-display" id="atmosphericValue">4x</span>
+                </div>
+                
+                <button onclick="analyzeImage()">Generate Gradient</button>
+            </div>
+        </div>
+
+        <!-- Time Mode -->
+        <div class="mode-content" id="time-mode">
+            <div class="time-controls-grid">
+                <div class="time-section">
+                    <h3>⏰ Time Selection</h3>
+                    <label for="time-input">Select Time</label>
+                    <div class="time-controls">
+                        <input id="time-input" type="time" value="12:00" class="time-input" />
+                        <button id="current-time-btn" class="current-time-btn">
+                            Current Time
+                        </button>
+                    </div>
+                    <div id="time-display" class="time-display"></div>
+                </div>
+
+                <div class="effects-section">
+                    <h3>✨ Optical Effects</h3>
+                    <div class="effects-toggle">
+                        <div id="effects-toggle" class="toggle-switch"></div>
+                        <label>Enable optical effects</label>
+                    </div>
+                    
+                    <div id="effects-controls" class="effects-controls" style="opacity: 0.5; pointer-events: none;">
+                        <div class="effects-control-group">
+                            <label>Effect Type</label>
+                            <select id="effectType">
+                                <option value="interference">Interference</option>
+                                <option value="prismatic">Prismatic</option>
+                                <option value="hybrid">Hybrid</option>
+                                <option value="filmgrain">Film Grain</option>
+                            </select>
+                        </div>
+
+                        <div class="effects-control-group">
+                            <label>Intensity</label>
+                            <input type="range" id="effectIntensity" min="10" max="60" value="25">
+                            <div class="value-display" id="effectIntensityVal">25</div>
+                        </div>
+
+                        <div class="effects-control-group">
+                            <label>Pattern Scale</label>
+                            <input type="range" id="patternScale" min="15" max="80" value="30">
+                            <div class="value-display" id="patternScaleVal">30</div>
+                        </div>
+
+                        <div class="effects-control-group">
+                            <label>Grain Size</label>
+                            <input type="range" id="grainSize" min="1" max="8" value="3">
+                            <div class="value-display" id="grainSizeVal">3</div>
+                        </div>
+
+                        <div class="effects-control-group">
+                            <label>Organic Variation</label>
+                            <input type="range" id="organicVariation" min="0" max="50" value="20">
+                            <div class="value-display" id="organicVariationVal">20%</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="animation-section">
+                <h3>🎬 Gradient Animation</h3>
+                <div class="animation-controls">
+                    <div class="animation-input-group">
+                        <label for="start-time">Start Time</label>
+                        <input id="start-time" type="time" value="06:00" />
+                    </div>
+                    <div class="animation-input-group">
+                        <label for="end-time">End Time</label>
+                        <input id="end-time" type="time" value="20:00" />
+                    </div>
+                    <div class="animation-input-group">
+                        <label for="duration">Duration</label>
+                        <select id="duration">
+                            <option value="5">5 seconds</option>
+                            <option value="10" selected>10 seconds</option>
+                            <option value="15">15 seconds</option>
+                            <option value="30">30 seconds</option>
+                            <option value="60">1 minute</option>
+                        </select>
+                    </div>
+                    <button id="play-btn" class="play-btn">
+                        ▶️ Play
+                    </button>
+                    <button id="stop-btn" class="stop-btn" style="display: none;">
+                        ⏹️ Stop
+                    </button>
+                </div>
+                <div class="animation-progress">
+                    <div id="animation-progress-bar" class="animation-progress-bar"></div>
+                </div>
+            </div>
+
+            <div class="presets-section">
+                <h3>Quick Presets</h3>
+                <div class="presets-grid" id="presets-grid">
+                    <!-- Preset buttons will be generated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Shared Gradient Display -->
+        <div class="gradient-display-container">
+            <div class="gradient-display" id="gradientDisplay">
+                <canvas id="gradient-canvas" width="400" height="533" style="width: 100%; height: 100%; border-radius: 12px;"></canvas>
+                <div id="time-badge" class="time-badge" style="display: none;"></div>
+            </div>
+        </div>
+
+        <!-- Shared Results -->
+        <div class="results-section" id="resultsSection">
+            <div class="gradient-info">
+                <h3 class="section-title">Extracted Colors</h3>
+                <div class="color-palette" id="colorPalette"></div>
+                
+                <h3 class="section-title">CSS Code</h3>
+                <div class="css-output">
+                    <button class="copy-button" onclick="copyCSS()">Copy</button>
+                    <pre id="cssCode"></pre>
+                </div>
+
+                <div class="export-section">
+                    <h3>🚀 Export Options</h3>
+                    
+                    <div class="size-selector">
+                        <label for="exportSize">Export Size:</label>
+                        <select id="exportSize">
+                            <option value="400x533">400×533 (Default)</option>
+                            <option value="800x1066">800×1066 (2x)</option>
+                            <option value="1200x1599">1200×1599 (3x)</option>
+                            <option value="1920x1080">1920×1080 (HD)</option>
+                            <option value="2560x1440">2560×1440 (QHD)</option>
+                            <option value="3840x2160">3840×2160 (4K)</option>
+                            <option value="custom">Custom Size</option>
+                        </select>
+                        <input type="number" id="customWidth" placeholder="Width" style="display: none; width: 80px; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px;">
+                        <span id="customX" style="display: none;">×</span>
+                        <input type="number" id="customHeight" placeholder="Height" style="display: none; width: 80px; padding: 6px; border: 1px solid #d1d5db; border-radius: 4px;">
+                    </div>
+
+                    <div class="format-selector">
+                        <label>Export Format:</label>
+                        <div class="format-options">
+                            <div class="format-option active" data-format="png">PNG</div>
+                            <div class="format-option" data-format="jpg">JPG</div>
+                            <div class="format-option" data-format="webp">WebP</div>
+                            <div class="format-option" data-format="svg">SVG</div>
+                        </div>
+                    </div>
+
+                    <div class="export-options">
+                        <button class="export-btn" onclick="exportImage()">
+                            <span class="icon">🖼️</span>
+                            <span>Export as Image</span>
+                        </button>
+                        
+                        <button class="export-btn" onclick="exportCSS()">
+                            <span class="icon">📄</span>
+                            <span>Export CSS File</span>
+                        </button>
+                        
+                        <button class="export-btn" onclick="exportSCSS()">
+                            <span class="icon">🎨</span>
+                            <span>Export SCSS File</span>
+                        </button>
+                        
+                        <button class="export-btn" onclick="exportPreset()">
+                            <span class="icon">⚙️</span>
+                            <span>Save as Preset</span>
+                        </button>
+                        
+                        <button class="export-btn" onclick="exportPalette()">
+                            <span class="icon">🎯</span>
+                            <span>Export Color Palette</span>
+                        </button>
+                        
+                        <button class="export-btn" onclick="exportJSON()">
+                            <span class="icon">📊</span>
+                            <span>Export JSON Data</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let currentImage = null;
+        let extractedColors = [];
+        let currentMode = 'image';
+        let animationInterval;
+        let isAnimating = false;
+        let effectsEnabled = false;
+        let currentGradientData = null;
+        let selectedExportFormat = 'png';
+
+        // Time-based gradient configurations
+        const timeGradients = {
+            dawn: {
+                colors: ["#FFB347", "#FF6B6B", "#4ECDC4", "#45B7D1"],
+                stops: [0, 30, 70, 100],
+                name: "Dawn",
+            },
+            morning: {
+                colors: ["#87CEEB", "#98D8E8", "#F0F8FF"],
+                stops: [0, 50, 100],
+                name: "Morning",
+            },
+            midday: {
+                colors: ["#87CEEB", "#B0E0E6", "#E6F3FF"],
+                stops: [0, 50, 100],
+                name: "Midday",
+            },
+            afternoon: {
+                colors: ["#FFA500", "#FFD700", "#87CEEB", "#E6F3FF"],
+                stops: [0, 25, 60, 100],
+                name: "Afternoon",
+            },
+            golden: {
+                colors: ["#FF8C00", "#FFD700", "#FF6347", "#FF69B4"],
+                stops: [0, 30, 70, 100],
+                name: "Golden Hour",
+            },
+            sunset: {
+                colors: ["#FF4500", "#FF6347", "#FF1493", "#8A2BE2"],
+                stops: [0, 30, 70, 100],
+                name: "Sunset",
+            },
+            dusk: {
+                colors: ["#4B0082", "#663399", "#2F4F4F"],
+                stops: [0, 50, 100],
+                name: "Dusk",
+            },
+            night: {
+                colors: ["#000428", "#004e92", "#191970"],
+                stops: [0, 50, 100],
+                name: "Night",
+            },
+        };
+
+        const presetTimes = [
+            { time: "06:00", label: "6:00 AM" },
+            { time: "08:00", label: "8:00 AM" },
+            { time: "12:00", label: "12:00 PM" },
+            { time: "15:00", label: "3:00 PM" },
+            { time: "18:00", label: "6:00 PM" },
+            { time: "19:30", label: "7:30 PM" },
+            { time: "21:00", label: "9:00 PM" },
+            { time: "23:00", label: "11:00 PM" },
+        ];
+
+        // DOM elements
+        const modeButtons = document.querySelectorAll('.mode-btn');
+        const modeContents = document.querySelectorAll('.mode-content');
+        const gradientCanvas = document.getElementById('gradient-canvas');
+        const gradientCtx = gradientCanvas.getContext('2d');
+        const resultsSection = document.getElementById('resultsSection');
+        const colorPalette = document.getElementById('colorPalette');
+        const cssCode = document.getElementById('cssCode');
+
+        // Image mode elements
+        const uploadArea = document.getElementById('uploadArea');
+        const fileInput = document.getElementById('fileInput');
+        const previewSection = document.getElementById('previewSection');
+        const imagePreview = document.getElementById('imagePreview');
+        const imageControls = document.getElementById('imageControls');
+        const atmosphericSlider = document.getElementById('atmosphericIntensity');
+        const atmosphericValue = document.getElementById('atmosphericValue');
+
+        // Time mode elements
+        const timeInput = document.getElementById('time-input');
+        const timeDisplay = document.getElementById('time-display');
+        const currentTimeBtn = document.getElementById('current-time-btn');
+        const presetsGrid = document.getElementById('presets-grid');
+        const timeBadge = document.getElementById('time-badge');
+        const effectsToggle = document.getElementById('effects-toggle');
+        const effectsControls = document.getElementById('effects-controls');
+        const effectType = document.getElementById('effectType');
+        const effectIntensity = document.getElementById('effectIntensity');
+        const patternScale = document.getElementById('patternScale');
+        const organicVariation = document.getElementById('organicVariation');
+        const effectIntensityVal = document.getElementById('effectIntensityVal');
+        const patternScaleVal = document.getElementById('patternScaleVal');
+        const organicVariationVal = document.getElementById('organicVariationVal');
+        const grainSize = document.getElementById('grainSize');
+        const grainSizeVal = document.getElementById('grainSizeVal');
+        const startTimeInput = document.getElementById('start-time');
+        const endTimeInput = document.getElementById('end-time');
+        const durationSelect = document.getElementById('duration');
+        const playBtn = document.getElementById('play-btn');
+        const stopBtn = document.getElementById('stop-btn');
+        const progressBar = document.getElementById('animation-progress-bar');
+
+        // Export elements
+        const exportSizeSelect = document.getElementById('exportSize');
+        const customWidthInput = document.getElementById('customWidth');
+        const customHeightInput = document.getElementById('customHeight');
+        const customX = document.getElementById('customX');
+        const formatOptions = document.querySelectorAll('.format-option');
+
+        // Mode switching
+        modeButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const mode = button.dataset.mode;
+                switchMode(mode);
+            });
+        });
+
+        function switchMode(mode) {
+            currentMode = mode;
+            
+            // Update buttons
+            modeButtons.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.mode === mode);
+            });
+            
+            // Update content
+            modeContents.forEach(content => {
+                content.classList.toggle('active', content.id === `${mode}-mode`);
+            });
+            
+            // Update time badge visibility
+            timeBadge.style.display = mode === 'time' ? 'block' : 'none';
+            
+            // Initialize the appropriate mode
+            if (mode === 'time') {
+                initTimeMode();
+            } else {
+                hideResults();
+            }
+        }
+
+        function hideResults() {
+            resultsSection.style.display = 'none';
+        }
+
+        function showResults() {
+            resultsSection.style.display = 'block';
+        }
+
+        // Image Mode Functions
+        function handleFileUpload(file) {
+            if (file.size > 10 * 1024 * 1024) {
+                alert('File too large. Please choose an image under 10MB.');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                imagePreview.src = e.target.result;
+                currentImage = new Image();
+                currentImage.onload = () => {
+                    previewSection.style.display = 'block';
+                    imageControls.style.display = 'flex';
+                    analyzeImage();
+                };
+                currentImage.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function analyzeImage() {
+            if (!currentImage) return;
+
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const maxSize = 200;
+            const scale = Math.min(maxSize / currentImage.width, maxSize / currentImage.height);
+            canvas.width = currentImage.width * scale;
+            canvas.height = currentImage.height * scale;
+            
+            ctx.drawImage(currentImage, 0, 0, canvas.width, canvas.height);
+            
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            extractedColors = extractAtmosphericColors(imageData);
+            
+            generateImageGradient();
+            showResults();
+        }
+
+        function extractAtmosphericColors(imageData) {
+            const pixels = [];
+            const data = imageData.data;
+            
+            for (let i = 0; i < data.length; i += 16) {
+                const r = data[i];
+                const g = data[i + 1];
+                const b = data[i + 2];
+                const alpha = data[i + 3];
+                
+                if (alpha > 128) {
+                    pixels.push([r, g, b]);
+                }
+            }
+            
+            if (pixels.length === 0) return ['rgb(150, 150, 150)', 'rgb(100, 100, 100)', 'rgb(200, 200, 200)'];
+            
+            let lightestPixel = [0, 0, 0];
+            let darkestPixel = [255, 255, 255];
+            let maxLuminance = 0;
+            let minLuminance = 255;
+            
+            pixels.forEach(pixel => {
+                const luminance = getLuminance(pixel);
+                if (luminance > maxLuminance) {
+                    maxLuminance = luminance;
+                    lightestPixel = pixel;
+                }
+                if (luminance < minLuminance) {
+                    minLuminance = luminance;
+                    darkestPixel = pixel;
+                }
+            });
+            
+            const middleColors = kMeansColors(pixels, 5);
+            let midtoneColor = middleColors[Math.floor(middleColors.length / 2)];
+            let topColor = middleColors[Math.floor(middleColors.length / 3)];
+            
+            const colors = [
+                topColor,
+                midtoneColor,
+                `rgb(${lightestPixel[0]}, ${lightestPixel[1]}, ${lightestPixel[2]})`
+            ];
+            
+            return colors;
+        }
+
+        function kMeansColors(pixels, k) {
+            if (pixels.length === 0) return ['rgb(128, 128, 128)'];
+            
+            let centroids = [];
+            for (let i = 0; i < k; i++) {
+                const randomPixel = pixels[Math.floor(Math.random() * pixels.length)];
+                centroids.push([...randomPixel]);
+            }
+            
+            let iterations = 0;
+            const maxIterations = 20;
+            
+            while (iterations < maxIterations) {
+                const clusters = Array(k).fill().map(() => []);
+                
+                pixels.forEach(pixel => {
+                    let minDistance = Infinity;
+                    let closestCentroid = 0;
+                    
+                    centroids.forEach((centroid, index) => {
+                        const distance = Math.sqrt(
+                            Math.pow(pixel[0] - centroid[0], 2) +
+                            Math.pow(pixel[1] - centroid[1], 2) +
+                            Math.pow(pixel[2] - centroid[2], 2)
+                        );
+                        
+                        if (distance < minDistance) {
+                            minDistance = distance;
+                            closestCentroid = index;
+                        }
+                    });
+                    
+                    clusters[closestCentroid].push(pixel);
+                });
+                
+                let converged = true;
+                centroids = centroids.map((centroid, index) => {
+                    if (clusters[index].length === 0) return centroid;
+                    
+                    const newCentroid = [
+                        Math.round(clusters[index].reduce((sum, pixel) => sum + pixel[0], 0) / clusters[index].length),
+                        Math.round(clusters[index].reduce((sum, pixel) => sum + pixel[1], 0) / clusters[index].length),
+                        Math.round(clusters[index].reduce((sum, pixel) => sum + pixel[2], 0) / clusters[index].length)
+                    ];
+                    
+                    if (newCentroid[0] !== centroid[0] || newCentroid[1] !== centroid[1] || newCentroid[2] !== centroid[2]) {
+                        converged = false;
+                    }
+                    
+                    return newCentroid;
+                });
+                
+                if (converged) break;
+                iterations++;
+            }
+            
+            return centroids
+                .filter(color => color.every(c => c >= 0 && c <= 255))
+                .sort((a, b) => getLuminance(b) - getLuminance(a))
+                .map(color => `rgb(${color[0]}, ${color[1]}, ${color[2]})`);
+        }
+
+        function getLuminance(rgb) {
+            return 0.299 * rgb[0] + 0.587 * rgb[1] + 0.114 * rgb[2];
+        }
+
+        function generateImageGradient() {
+            const atmosphericIntensity = parseFloat(atmosphericSlider.value);
+            const colors = [...extractedColors];
+            
+            const imageWidth = currentImage.width;
+            const imageHeight = currentImage.height;
+            
+            const ellipseWidth = imageWidth * atmosphericIntensity;
+            const ellipseHeight = imageHeight * 2;
+            
+            // Draw gradient on canvas
+            gradientCtx.clearRect(0, 0, 400, 533);
+            
+            const grad = gradientCtx.createRadialGradient(
+                200, 533, 0,
+                200, 533, Math.max(ellipseWidth * 0.5, ellipseHeight * 0.5)
+            );
+            
+            colors.forEach((color, index) => {
+                grad.addColorStop(index / (colors.length - 1), color);
+            });
+            
+            gradientCtx.fillStyle = grad;
+            gradientCtx.fillRect(0, 0, 400, 533);
+            
+            const gradientCSS = `radial-gradient(ellipse ${ellipseWidth}px ${ellipseHeight}px at 50% 100%, ${colors.join(', ')})`;
+            
+            // Store current gradient data
+            currentGradientData = {
+                type: 'image',
+                colors: colors,
+                css: gradientCSS,
+                settings: {
+                    atmosphericIntensity: atmosphericIntensity,
+                    imageWidth: imageWidth,
+                    imageHeight: imageHeight
+                }
+            };
+            
+            updateResults(colors, gradientCSS);
+        }
+
+        // Time Mode Functions
+        function initTimeMode() {
+            const currentTime = getCurrentTime();
+            timeInput.value = currentTime;
+            initPresets();
+            updateEffectValues();
+            updateTimeGradient(currentTime);
+        }
+
+        function getCurrentTime() {
+            const now = new Date();
+            const hours = now.getHours().toString().padStart(2, '0');
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            return `${hours}:${minutes}`;
+        }
+
+        function timeToMinutes(timeString) {
+            const [hours, minutes] = timeString.split(":").map(Number);
+            return hours * 60 + minutes;
+        }
+
+        function minutesToTime(totalMinutes) {
+            const hours = Math.floor(totalMinutes / 60);
+            const minutes = totalMinutes % 60;
+            return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        }
+
+        function getTimeCategory(timeString) {
+            const [hours, minutes] = timeString.split(":").map(Number);
+            const totalMinutes = hours * 60 + minutes;
+
+            if (totalMinutes >= 300 && totalMinutes < 420) return "dawn";
+            if (totalMinutes >= 420 && totalMinutes < 600) return "morning";
+            if (totalMinutes >= 600 && totalMinutes < 900) return "midday";
+            if (totalMinutes >= 900 && totalMinutes < 1020) return "afternoon";
+            if (totalMinutes >= 1020 && totalMinutes < 1140) return "golden";
+            if (totalMinutes >= 1140 && totalMinutes < 1230) return "sunset";
+            if (totalMinutes >= 1230 && totalMinutes < 1320) return "dusk";
+            return "night";
+        }
+
+        function formatTime(time24) {
+            const [hours, minutes] = time24.split(":").map(Number);
+            const period = hours >= 12 ? "PM" : "AM";
+            const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+            return `${displayHours}:${minutes.toString().padStart(2, "0")} ${period}`;
+        }
+
+        function interpolateColor(color1, color2, factor) {
+            const hex1 = color1.replace('#', '');
+            const hex2 = color2.replace('#', '');
+            
+            const r1 = parseInt(hex1.substr(0, 2), 16);
+            const g1 = parseInt(hex1.substr(2, 2), 16);
+            const b1 = parseInt(hex1.substr(4, 2), 16);
+            
+            const r2 = parseInt(hex2.substr(0, 2), 16);
+            const g2 = parseInt(hex2.substr(2, 2), 16);
+            const b2 = parseInt(hex2.substr(4, 2), 16);
+            
+            const r = Math.round(r1 + (r2 - r1) * factor);
+            const g = Math.round(g1 + (g2 - g1) * factor);
+            const b = Math.round(b1 + (b2 - b1) * factor);
+            
+            return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+        }
+
+        function createGradientString(gradient) {
+            const colorStops = gradient.colors
+                .map((color, index) => `${color} ${gradient.stops[index]}%`)
+                .join(", ");
+
+            return `radial-gradient(ellipse at 50% 100%, ${colorStops})`;
+        }
+
+        function organicNoise(x, y, frequency, octaves = 2) {
+            let value = 0;
+            let amplitude = 1;
+            let freq = frequency;
+            
+            for (let i = 0; i < octaves; i++) {
+                value += Math.sin(x * freq * 0.01) * Math.cos(y * freq * 0.01) * amplitude;
+                freq *= 2;
+                amplitude *= 0.5;
+            }
+            
+            return value * 0.5 + 0.5;
+        }
+
+        // Improved noise functions for film grain
+        function pseudoRandom(x, y, seed = 12345) {
+            let hash = seed;
+            hash = ((hash ^ x) * 16777619) >>> 0;
+            hash = ((hash ^ y) * 16777619) >>> 0;
+            hash = ((hash ^ (hash >>> 16)) * 2246822507) >>> 0;
+            hash = ((hash ^ (hash >>> 13)) * 3266489909) >>> 0;
+            hash = (hash ^ (hash >>> 16)) >>> 0;
+            return (hash / 4294967296);
+        }
+
+        function filmGrainNoise(x, y, grainSize, intensity) {
+            // Create clusters of grain based on grain size
+            const clusterX = Math.floor(x / grainSize);
+            const clusterY = Math.floor(y / grainSize);
+            
+            // Multiple noise layers for realistic grain
+            const coarseGrain = pseudoRandom(clusterX, clusterY, 12345);
+            const fineGrain = pseudoRandom(x, y, 54321);
+            const mediumGrain = pseudoRandom(Math.floor(x / 2), Math.floor(y / 2), 98765);
+            
+            // Combine noise layers with different weights
+            const combinedNoise = (coarseGrain * 0.5 + fineGrain * 0.3 + mediumGrain * 0.2);
+            
+            // Apply intensity and create both positive and negative displacement
+            const displacement = (combinedNoise - 0.5) * intensity;
+            
+            return displacement;
+        }
+
+        function perlinNoise(x, y, scale) {
+            // Simplified Perlin-like noise for smoother organic effects
+            const xi = Math.floor(x / scale);
+            const yi = Math.floor(y / scale);
+            const xf = (x / scale) - xi;
+            const yf = (y / scale) - yi;
+            
+            const u = xf * xf * (3 - 2 * xf);
+            const v = yf * yf * (3 - 2 * yf);
+            
+            const n00 = pseudoRandom(xi, yi);
+            const n10 = pseudoRandom(xi + 1, yi);
+            const n01 = pseudoRandom(xi, yi + 1);
+            const n11 = pseudoRandom(xi + 1, yi + 1);
+            
+            const nx0 = n00 * (1 - u) + n10 * u;
+            const nx1 = n01 * (1 - u) + n11 * u;
+            
+            return nx0 * (1 - v) + nx1 * v;
+        }
+
+        function createBaseGradient(gradient) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 400;
+            canvas.height = 533;
+            const ctx = canvas.getContext('2d');
+
+            const grad = ctx.createRadialGradient(
+                200, 533, 0,
+                200, 533, Math.max(400, 533)
+            );
+
+            gradient.colors.forEach((color, index) => {
+                grad.addColorStop(gradient.stops[index] / 100, color);
+            });
+
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 400, 533);
+            
+            return canvas;
+        }
+
+        function applyOpticalEffects(sourceCanvas, gradient) {
+            const width = 400;
+            const height = 533;
+            const sourceCtx = sourceCanvas.getContext('2d');
+            
+            const intensity = parseInt(effectIntensity.value);
+            const scale = parseInt(patternScale.value);
+            const variation = parseInt(organicVariation.value) / 100;
+            const grainSizeValue = parseInt(grainSize.value);
+            
+            const outputImageData = gradientCtx.createImageData(width, height);
+            const outputData = outputImageData.data;
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let displacementX = 0;
+                    let displacementY = 0;
+                    let colorModification = 0;
+                    
+                    // Add organic variation using improved Perlin noise
+                    const organicX = x + perlinNoise(x, y, 8) * variation * 10;
+                    const organicY = y + perlinNoise(x + 100, y + 100, 8) * variation * 10;
+                    
+                    switch (effectType.value) {
+                        case 'interference':
+                            const pattern1 = Math.sin(organicX * Math.PI / scale) * Math.cos(organicY * Math.PI / scale);
+                            const pattern2 = Math.sin((organicX + organicY) * Math.PI / (scale * 1.2)) * Math.cos((organicX - organicY) * Math.PI / (scale * 1.2));
+                            const interference = pattern1 * pattern2;
+                            displacementX = interference * intensity * 0.4;
+                            displacementY = interference * intensity * 0.3;
+                            break;
+                            
+                        case 'prismatic':
+                            const distance = Math.sqrt((x - width/2) ** 2 + (y - height/2) ** 2);
+                            const angle = Math.atan2(y - height/2, x - width/2);
+                            const prism1 = Math.sin(organicX * Math.PI / scale + angle);
+                            const prism2 = Math.cos(organicY * Math.PI / scale + angle);
+                            displacementX = prism1 * intensity * 0.3;
+                            displacementY = prism2 * intensity * 0.3;
+                            break;
+                            
+                        case 'hybrid':
+                            const hybridPattern1 = Math.sin(organicX * Math.PI / scale) * Math.cos(organicY * Math.PI / scale);
+                            const hybridPattern2 = Math.sin((organicX + organicY) * Math.PI / (scale * 1.2)) * Math.cos((organicX - organicY) * Math.PI / (scale * 1.2));
+                            const hybridInterference = hybridPattern1 * hybridPattern2;
+                            
+                            const hybridAngle = Math.atan2(y - height/2, x - width/2);
+                            const hybridPrism = Math.sin(organicX * Math.PI / (scale * 0.8) + hybridAngle * 2);
+                            
+                            displacementX = (hybridInterference * 0.6 + hybridPrism * 0.4) * intensity * 0.35;
+                            displacementY = (hybridInterference * 0.6 + hybridPrism * 0.4) * intensity * 0.25;
+                            break;
+
+                        case 'filmgrain':
+                            // Film grain creates both displacement and color variation
+                            const grainDisplacementX = filmGrainNoise(x, y, grainSizeValue, intensity * 0.1);
+                            const grainDisplacementY = filmGrainNoise(x + 123, y + 456, grainSizeValue, intensity * 0.1);
+                            
+                            // Add subtle organic movement
+                            const organicGrainX = perlinNoise(x, y, scale * 0.5) * variation * 2;
+                            const organicGrainY = perlinNoise(x + 789, y + 012, scale * 0.5) * variation * 2;
+                            
+                            displacementX = grainDisplacementX + organicGrainX;
+                            displacementY = grainDisplacementY + organicGrainY;
+                            
+                            // Color modification for grain effect
+                            colorModification = filmGrainNoise(x + 333, y + 666, grainSizeValue * 0.5, intensity * 0.3);
+                            break;
+                    }
+                    
+                    // Sample from displaced position
+                    const sourceX = Math.max(0, Math.min(width - 1, Math.round(x + displacementX)));
+                    const sourceY = Math.max(0, Math.min(height - 1, Math.round(y + displacementY)));
+                    
+                    const sourceImageData = sourceCtx.getImageData(sourceX, sourceY, 1, 1);
+                    const sourcePixel = sourceImageData.data;
+                    
+                    const outputIndex = (y * width + x) * 4;
+                    
+                    if (effectType.value === 'filmgrain') {
+                        // Apply film grain color modification
+                        const grainIntensity = colorModification * 25; // Adjust grain visibility
+                        
+                        outputData[outputIndex] = Math.max(0, Math.min(255, sourcePixel[0] + grainIntensity));     // R
+                        outputData[outputIndex + 1] = Math.max(0, Math.min(255, sourcePixel[1] + grainIntensity)); // G
+                        outputData[outputIndex + 2] = Math.max(0, Math.min(255, sourcePixel[2] + grainIntensity)); // B
+                        outputData[outputIndex + 3] = 255;                                                          // A
+                    } else {
+                        // Standard color sampling for other effects
+                        outputData[outputIndex] = sourcePixel[0];     // R
+                        outputData[outputIndex + 1] = sourcePixel[1]; // G
+                        outputData[outputIndex + 2] = sourcePixel[2]; // B
+                        outputData[outputIndex + 3] = 255;            // A
+                    }
+                }
+            }
+            
+            gradientCtx.putImageData(outputImageData, 0, 0);
+        }
+
+        function updateTimeGradient(timeString) {
+            const category = getTimeCategory(timeString);
+            const gradient = timeGradients[category];
+            const formattedTime = formatTime(timeString);
+            const gradientCSS = createGradientString(gradient);
+
+            // Store current gradient data
+            currentGradientData = {
+                type: 'time',
+                colors: gradient.colors,
+                stops: gradient.stops,
+                css: gradientCSS,
+                name: gradient.name,
+                timeString: timeString,
+                category: category,
+                effects: effectsEnabled ? {
+                    type: effectType.value,
+                    intensity: effectIntensity.value,
+                    scale: patternScale.value,
+                    variation: organicVariation.value,
+                    grainSize: grainSize.value
+                } : null
+            };
+
+            timeDisplay.textContent = `${formattedTime} - ${gradient.name}`;
+            timeBadge.textContent = formattedTime;
+
+            const baseCanvas = createBaseGradient(gradient);
+            
+            gradientCtx.clearRect(0, 0, 400, 533);
+            
+            if (effectsEnabled) {
+                applyOpticalEffects(baseCanvas, gradient);
+            } else {
+                gradientCtx.drawImage(baseCanvas, 0, 0);
+            }
+
+            updateResults(gradient.colors, gradientCSS);
+            updatePresetButtons(timeString);
+        }
+
+        function updateTimeGradientWithCustom(gradient) {
+            const gradientCSS = createGradientString(gradient);
+            
+            // Store current gradient data
+            currentGradientData = {
+                type: 'time',
+                colors: gradient.colors,
+                stops: gradient.stops,
+                css: gradientCSS,
+                name: gradient.name,
+                effects: effectsEnabled ? {
+                    type: effectType.value,
+                    intensity: effectIntensity.value,
+                    scale: patternScale.value,
+                    variation: organicVariation.value,
+                    grainSize: grainSize.value
+                } : null
+            };
+            
+            timeDisplay.textContent = gradient.name;
+            timeBadge.textContent = gradient.name;
+
+            const baseCanvas = createBaseGradient(gradient);
+            
+            gradientCtx.clearRect(0, 0, 400, 533);
+            
+            if (effectsEnabled) {
+                applyOpticalEffects(baseCanvas, gradient);
+            } else {
+                gradientCtx.drawImage(baseCanvas, 0, 0);
+            }
+
+            updateResults(gradient.colors, gradientCSS);
+        }
+
+        function updateResults(colors, gradientCSS) {
+            colorPalette.innerHTML = "";
+            colors.forEach((color) => {
+                const colorItem = document.createElement("div");
+                colorItem.className = "color-swatch";
+                colorItem.style.backgroundColor = color;
+                colorItem.setAttribute('data-color', color);
+                colorItem.onclick = () => copyColor(color);
+                colorPalette.appendChild(colorItem);
+            });
+
+            cssCode.textContent = gradientCSS;
+            showResults();
+        }
+
+        function updatePresetButtons(selectedTime) {
+            const buttons = presetsGrid.querySelectorAll(".preset-btn");
+            buttons.forEach((btn) => {
+                btn.classList.toggle('active', btn.dataset.time === selectedTime);
+            });
+        }
+
+        function updateEffectValues() {
+            effectIntensityVal.textContent = effectIntensity.value;
+            patternScaleVal.textContent = patternScale.value;
+            organicVariationVal.textContent = organicVariation.value + '%';
+            grainSizeVal.textContent = grainSize.value;
+        }
+
+        function toggleEffects() {
+            effectsEnabled = !effectsEnabled;
+            effectsToggle.classList.toggle('active', effectsEnabled);
+            
+            if (effectsEnabled) {
+                effectsControls.style.opacity = '1';
+                effectsControls.style.pointerEvents = 'auto';
+            } else {
+                effectsControls.style.opacity = '0.5';
+                effectsControls.style.pointerEvents = 'none';
+            }
+            
+            if (!isAnimating && currentMode === 'time') {
+                updateTimeGradient(timeInput.value);
+            }
+        }
+
+        function interpolateGradient(gradient1, gradient2, factor) {
+            const colors = [];
+            const maxColors = Math.max(gradient1.colors.length, gradient2.colors.length);
+            
+            for (let i = 0; i < maxColors; i++) {
+                const color1 = gradient1.colors[i] || gradient1.colors[gradient1.colors.length - 1];
+                const color2 = gradient2.colors[i] || gradient2.colors[gradient2.colors.length - 1];
+                colors.push(interpolateColor(color1, color2, factor));
+            }
+            
+            const stops = [];
+            for (let i = 0; i < maxColors; i++) {
+                const stop1 = gradient1.stops[i] || gradient1.stops[gradient1.stops.length - 1];
+                const stop2 = gradient2.stops[i] || gradient2.stops[gradient2.stops.length - 1];
+                stops.push(stop1 + (stop2 - stop1) * factor);
+            }
+            
+            return {
+                colors,
+                stops,
+                name: `Transitioning (${Math.round(factor * 100)}%)`
+            };
+        }
+
+        function startAnimation() {
+            const startTime = startTimeInput.value;
+            const endTime = endTimeInput.value;
+            const duration = parseInt(durationSelect.value) * 1000;
+            
+            const startMinutes = timeToMinutes(startTime);
+            let endMinutes = timeToMinutes(endTime);
+            
+            if (endMinutes < startMinutes) {
+                endMinutes += 24 * 60;
+            }
+            
+            const totalMinutes = endMinutes - startMinutes;
+            const startTimestamp = Date.now();
+            
+            isAnimating = true;
+            playBtn.style.display = 'none';
+            stopBtn.style.display = 'block';
+            
+            animationInterval = setInterval(() => {
+                const elapsed = Date.now() - startTimestamp;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                progressBar.style.width = `${progress * 100}%`;
+                
+                const currentMinutes = startMinutes + (totalMinutes * progress);
+                const currentTime = minutesToTime(Math.round(currentMinutes % (24 * 60)));
+                
+                const currentCategory = getTimeCategory(currentTime);
+                const currentGradient = timeGradients[currentCategory];
+                
+                const nextMinutes = (currentMinutes + 30) % (24 * 60);
+                const nextTime = minutesToTime(Math.round(nextMinutes));
+                const nextCategory = getTimeCategory(nextTime);
+                const nextGradient = timeGradients[nextCategory];
+                
+                let displayGradient;
+                if (currentCategory !== nextCategory) {
+                    const minutesInCategory = 30;
+                    const categoryProgress = (currentMinutes % minutesInCategory) / minutesInCategory;
+                    displayGradient = interpolateGradient(currentGradient, nextGradient, categoryProgress * 0.3);
+                } else {
+                    displayGradient = currentGradient;
+                }
+                
+                displayGradient.name = `${formatTime(currentTime)} - ${currentGradient.name}`;
+                updateTimeGradientWithCustom(displayGradient);
+                
+                timeInput.value = currentTime;
+                
+                if (progress >= 1) {
+                    stopAnimation();
+                }
+            }, 50);
+        }
+
+        function stopAnimation() {
+            if (animationInterval) {
+                clearInterval(animationInterval);
+                animationInterval = null;
+            }
+            
+            isAnimating = false;
+            playBtn.style.display = 'block';
+            stopBtn.style.display = 'none';
+            progressBar.style.width = '0%';
+            
+            updateTimeGradient(timeInput.value);
+        }
+
+        function initPresets() {
+            presetsGrid.innerHTML = '';
+            presetTimes.forEach((preset) => {
+                const button = document.createElement("button");
+                button.className = "preset-btn";
+                button.textContent = preset.label;
+                button.dataset.time = preset.time;
+                button.addEventListener("click", () => {
+                    if (!isAnimating) {
+                        timeInput.value = preset.time;
+                        updateTimeGradient(preset.time);
+                    }
+                });
+                presetsGrid.appendChild(button);
+            });
+        }
+
+        function copyColor(color) {
+            navigator.clipboard.writeText(color).catch(() => {
+                const textArea = document.createElement('textarea');
+                textArea.value = color;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+            });
+        }
+
+        function copyCSS() {
+            const cssText = cssCode.textContent;
+            navigator.clipboard.writeText(cssText).then(() => {
+                const button = document.querySelector('.copy-button');
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            }).catch(() => {
+                const textArea = document.createElement('textarea');
+                textArea.value = cssText;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                const button = document.querySelector('.copy-button');
+                const originalText = button.textContent;
+                button.textContent = 'Copied!';
+                setTimeout(() => {
+                    button.textContent = originalText;
+                }, 2000);
+            });
+        }
+
+        // Event listeners for image mode
+        uploadArea.addEventListener('click', () => fileInput.click());
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) {
+                handleFileUpload(file);
+            }
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files[0]) {
+                handleFileUpload(e.target.files[0]);
+            }
+        });
+
+        atmosphericSlider.addEventListener('input', (e) => {
+            atmosphericValue.textContent = e.target.value + 'x';
+            if (extractedColors.length > 0) {
+                generateImageGradient();
+            }
+        });
+
+        // Event listeners for time mode
+        timeInput.addEventListener("change", (e) => {
+            if (!isAnimating) {
+                updateTimeGradient(e.target.value);
+            }
+        });
+
+        currentTimeBtn.addEventListener("click", () => {
+            if (!isAnimating) {
+                const currentTime = getCurrentTime();
+                timeInput.value = currentTime;
+                updateTimeGradient(currentTime);
+            }
+        });
+
+        effectsToggle.addEventListener("click", toggleEffects);
+
+        effectType.addEventListener("change", () => {
+            if (effectsEnabled && !isAnimating) {
+                updateTimeGradient(timeInput.value);
+            }
+        });
+
+        effectIntensity.addEventListener("input", () => {
+            updateEffectValues();
+            if (effectsEnabled && !isAnimating) {
+                updateTimeGradient(timeInput.value);
+            }
+        });
+
+        patternScale.addEventListener("input", () => {
+            updateEffectValues();
+            if (effectsEnabled && !isAnimating) {
+                updateTimeGradient(timeInput.value);
+            }
+        });
+
+        organicVariation.addEventListener("input", () => {
+            updateEffectValues();
+            if (effectsEnabled && !isAnimating) {
+                updateTimeGradient(timeInput.value);
+            }
+        });
+
+        grainSize.addEventListener("input", () => {
+            updateEffectValues();
+            if (effectsEnabled && !isAnimating) {
+                updateTimeGradient(timeInput.value);
+            }
+        });
+
+        playBtn.addEventListener("click", startAnimation);
+        stopBtn.addEventListener("click", stopAnimation);
+
+        // Export event listeners
+        exportSizeSelect.addEventListener('change', (e) => {
+            const isCustom = e.target.value === 'custom';
+            customWidthInput.style.display = isCustom ? 'inline-block' : 'none';
+            customHeightInput.style.display = isCustom ? 'inline-block' : 'none';
+            customX.style.display = isCustom ? 'inline-block' : 'none';
+        });
+
+        formatOptions.forEach(option => {
+            option.addEventListener('click', () => {
+                formatOptions.forEach(opt => opt.classList.remove('active'));
+                option.classList.add('active');
+                selectedExportFormat = option.dataset.format;
+            });
+        });
+
+        // Export Functions
+        function getExportDimensions() {
+            const sizeValue = exportSizeSelect.value;
+            if (sizeValue === 'custom') {
+                const width = parseInt(customWidthInput.value) || 400;
+                const height = parseInt(customHeightInput.value) || 533;
+                return { width, height };
+            } else {
+                const [width, height] = sizeValue.split('x').map(Number);
+                return { width, height };
+            }
+        }
+
+        function createExportCanvas(width, height) {
+            const canvas = document.createElement('canvas');
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+
+            if (!currentGradientData) return canvas;
+
+            if (currentGradientData.type === 'image') {
+                // For image gradients
+                const { colors, settings } = currentGradientData;
+                const ellipseWidth = settings.imageWidth * settings.atmosphericIntensity;
+                const ellipseHeight = settings.imageHeight * 2;
+                
+                // Create base gradient at export size
+                const grad = ctx.createRadialGradient(
+                    width / 2, height, 0,
+                    width / 2, height, Math.max(ellipseWidth * (width / 400), ellipseHeight * (height / 533)) * 0.5
+                );
+                
+                colors.forEach((color, index) => {
+                    grad.addColorStop(index / (colors.length - 1), color);
+                });
+                
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, width, height);
+                
+                // Apply effects if they were enabled (image mode doesn't use effects currently)
+                // Future enhancement: could add effects to image mode too
+                
+            } else if (currentGradientData.type === 'time') {
+                // For time gradients, we need to recreate the exact same rendering pipeline
+                const { colors, stops, effects } = currentGradientData;
+                
+                // Create base gradient at export size
+                const baseCanvas = document.createElement('canvas');
+                baseCanvas.width = width;
+                baseCanvas.height = height;
+                const baseCtx = baseCanvas.getContext('2d');
+                
+                const grad = baseCtx.createRadialGradient(
+                    width / 2, height, 0,
+                    width / 2, height, Math.max(width, height)
+                );
+                
+                colors.forEach((color, index) => {
+                    grad.addColorStop(stops[index] / 100, color);
+                });
+                
+                baseCtx.fillStyle = grad;
+                baseCtx.fillRect(0, 0, width, height);
+                
+                // Apply effects if they were enabled
+                if (effects) {
+                    applyOpticalEffectsToCanvas(ctx, baseCanvas, effects, width, height);
+                } else {
+                    // No effects, just copy the base gradient
+                    ctx.drawImage(baseCanvas, 0, 0);
+                }
+            }
+
+            return canvas;
+        }
+
+        function applyOpticalEffectsToCanvas(targetCtx, sourceCanvas, effects, width, height) {
+            const sourceCtx = sourceCanvas.getContext('2d');
+            
+            const intensity = parseInt(effects.intensity);
+            const scale = parseInt(effects.scale);
+            const variation = parseInt(effects.variation) / 100;
+            const grainSizeValue = parseInt(effects.grainSize || 3);
+            
+            const outputImageData = targetCtx.createImageData(width, height);
+            const outputData = outputImageData.data;
+            
+            // Scale factors for different export sizes
+            const scaleFactorX = width / 400;
+            const scaleFactorY = height / 533;
+            
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    let displacementX = 0;
+                    let displacementY = 0;
+                    let colorModification = 0;
+                    
+                    // Scale coordinates for consistent effect appearance
+                    const scaledX = x / scaleFactorX;
+                    const scaledY = y / scaleFactorY;
+                    
+                    // Add organic variation using improved Perlin noise
+                    const organicX = scaledX + perlinNoise(scaledX, scaledY, 8) * variation * 10;
+                    const organicY = scaledY + perlinNoise(scaledX + 100, scaledY + 100, 8) * variation * 10;
+                    
+                    switch (effects.type) {
+                        case 'interference':
+                            const pattern1 = Math.sin(organicX * Math.PI / scale) * Math.cos(organicY * Math.PI / scale);
+                            const pattern2 = Math.sin((organicX + organicY) * Math.PI / (scale * 1.2)) * Math.cos((organicX - organicY) * Math.PI / (scale * 1.2));
+                            const interference = pattern1 * pattern2;
+                            displacementX = interference * intensity * 0.4 * scaleFactorX;
+                            displacementY = interference * intensity * 0.3 * scaleFactorY;
+                            break;
+                            
+                        case 'prismatic':
+                            const distance = Math.sqrt((scaledX - 200) ** 2 + (scaledY - 266.5) ** 2);
+                            const angle = Math.atan2(scaledY - 266.5, scaledX - 200);
+                            const prism1 = Math.sin(organicX * Math.PI / scale + angle);
+                            const prism2 = Math.cos(organicY * Math.PI / scale + angle);
+                            displacementX = prism1 * intensity * 0.3 * scaleFactorX;
+                            displacementY = prism2 * intensity * 0.3 * scaleFactorY;
+                            break;
+                            
+                        case 'hybrid':
+                            const hybridPattern1 = Math.sin(organicX * Math.PI / scale) * Math.cos(organicY * Math.PI / scale);
+                            const hybridPattern2 = Math.sin((organicX + organicY) * Math.PI / (scale * 1.2)) * Math.cos((organicX - organicY) * Math.PI / (scale * 1.2));
+                            const hybridInterference = hybridPattern1 * hybridPattern2;
+                            
+                            const hybridAngle = Math.atan2(scaledY - 266.5, scaledX - 200);
+                            const hybridPrism = Math.sin(organicX * Math.PI / (scale * 0.8) + hybridAngle * 2);
+                            
+                            displacementX = (hybridInterference * 0.6 + hybridPrism * 0.4) * intensity * 0.35 * scaleFactorX;
+                            displacementY = (hybridInterference * 0.6 + hybridPrism * 0.4) * intensity * 0.25 * scaleFactorY;
+                            break;
+
+                        case 'filmgrain':
+                            // Film grain creates both displacement and color variation
+                            const grainDisplacementX = filmGrainNoise(scaledX, scaledY, grainSizeValue, intensity * 0.1) * scaleFactorX;
+                            const grainDisplacementY = filmGrainNoise(scaledX + 123, scaledY + 456, grainSizeValue, intensity * 0.1) * scaleFactorY;
+                            
+                            // Add subtle organic movement
+                            const organicGrainX = perlinNoise(scaledX, scaledY, scale * 0.5) * variation * 2 * scaleFactorX;
+                            const organicGrainY = perlinNoise(scaledX + 789, scaledY + 012, scale * 0.5) * variation * 2 * scaleFactorY;
+                            
+                            displacementX = grainDisplacementX + organicGrainX;
+                            displacementY = grainDisplacementY + organicGrainY;
+                            
+                            // Color modification for grain effect
+                            colorModification = filmGrainNoise(scaledX + 333, scaledY + 666, grainSizeValue * 0.5, intensity * 0.3);
+                            break;
+                    }
+                    
+                    // Sample from displaced position
+                    const sourceX = Math.max(0, Math.min(width - 1, Math.round(x + displacementX)));
+                    const sourceY = Math.max(0, Math.min(height - 1, Math.round(y + displacementY)));
+                    
+                    const sourceImageData = sourceCtx.getImageData(sourceX, sourceY, 1, 1);
+                    const sourcePixel = sourceImageData.data;
+                    
+                    const outputIndex = (y * width + x) * 4;
+                    
+                    if (effects.type === 'filmgrain') {
+                        // Apply film grain color modification
+                        const grainIntensity = colorModification * 25; // Adjust grain visibility
+                        
+                        outputData[outputIndex] = Math.max(0, Math.min(255, sourcePixel[0] + grainIntensity));     // R
+                        outputData[outputIndex + 1] = Math.max(0, Math.min(255, sourcePixel[1] + grainIntensity)); // G
+                        outputData[outputIndex + 2] = Math.max(0, Math.min(255, sourcePixel[2] + grainIntensity)); // B
+                        outputData[outputIndex + 3] = 255;                                                          // A
+                    } else {
+                        // Standard color sampling for other effects
+                        outputData[outputIndex] = sourcePixel[0];     // R
+                        outputData[outputIndex + 1] = sourcePixel[1]; // G
+                        outputData[outputIndex + 2] = sourcePixel[2]; // B
+                        outputData[outputIndex + 3] = 255;            // A
+                    }
+                }
+            }
+            
+            targetCtx.putImageData(outputImageData, 0, 0);
+        }
+
+        function downloadFile(content, filename, contentType = 'text/plain') {
+            const blob = new Blob([content], { type: contentType });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function exportImage() {
+            if (!currentGradientData) {
+                alert('Please generate a gradient first!');
+                return;
+            }
+
+            const { width, height } = getExportDimensions();
+            const canvas = createExportCanvas(width, height);
+            
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            const filename = `gradient-${currentGradientData.type}-${timestamp}.${selectedExportFormat}`;
+            
+            if (selectedExportFormat === 'svg') {
+                exportSVG(filename);
+                return;
+            }
+            
+            const mimeType = {
+                'png': 'image/png',
+                'jpg': 'image/jpeg',
+                'webp': 'image/webp'
+            }[selectedExportFormat] || 'image/png';
+            
+            canvas.toBlob((blob) => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                link.click();
+                URL.revokeObjectURL(url);
+            }, mimeType, selectedExportFormat === 'jpg' ? 0.95 : undefined);
+        }
+
+        function exportSVG(filename) {
+            const { width, height } = getExportDimensions();
+            const { colors, stops, effects } = currentGradientData;
+            
+            const gradientId = 'export-gradient';
+            let svgContent = `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="${gradientId}" cx="50%" cy="100%" r="100%">`;
+            
+            if (currentGradientData.type === 'time') {
+                colors.forEach((color, index) => {
+                    svgContent += `\n      <stop offset="${stops[index]}%" stop-color="${color}"/>`;
+                });
+            } else {
+                colors.forEach((color, index) => {
+                    const offset = (index / (colors.length - 1)) * 100;
+                    svgContent += `\n      <stop offset="${offset}%" stop-color="${color}"/>`;
+                });
+            }
+            
+            svgContent += `
+    </radialGradient>`;
+
+            // Add filter effects for SVG if optical effects were applied
+            if (effects) {
+                svgContent += `
+    <filter id="optical-effects" x="0%" y="0%" width="100%" height="100%">`;
+                
+                switch (effects.type) {
+                    case 'filmgrain':
+                        svgContent += `
+      <feTurbulence baseFrequency="${0.1 + (effects.grainSize || 3) * 0.02}" numOctaves="4" type="fractalNoise"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="${effects.intensity * 0.01}"/>
+      </feComponentTransfer>
+      <feComposite in2="SourceGraphic" operator="overlay"/>`;
+                        break;
+                    case 'interference':
+                    case 'prismatic':
+                    case 'hybrid':
+                        svgContent += `
+      <feTurbulence baseFrequency="${0.05 + effects.scale * 0.001}" numOctaves="3" type="turbulence"/>
+      <feDisplacementMap in="SourceGraphic" scale="${effects.intensity * 0.5}"/>`;
+                        break;
+                }
+                
+                svgContent += `
+    </filter>`;
+            }
+            
+            svgContent += `
+  </defs>
+  <rect width="100%" height="100%" fill="url(#${gradientId})"${effects ? ` filter="url(#optical-effects)"` : ''}/>`;
+            
+            // Add a note about limitations
+            if (effects) {
+                svgContent += `
+  <!-- Note: SVG effects are approximations. For exact reproduction, use PNG/JPG export -->`;
+            }
+            
+            svgContent += `
+</svg>`;
+            
+            downloadFile(svgContent, filename, 'image/svg+xml');
+        }
+
+        function exportCSS() {
+            if (!currentGradientData) {
+                alert('Please generate a gradient first!');
+                return;
+            }
+
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            const filename = `gradient-${currentGradientData.type}-${timestamp}.css`;
+            
+            const { width, height } = getExportDimensions();
+            const cssContent = `/* Gradient exported from Ultimate Gradient Generator */
+/* Generated on: ${new Date().toLocaleString()} */
+/* Type: ${currentGradientData.type} */
+${currentGradientData.name ? `/* Name: ${currentGradientData.name} */` : ''}
+
+.gradient {
+  width: ${width}px;
+  height: ${height}px;
+  background: ${currentGradientData.css};
+}
+
+/* Alternative: Full viewport */
+.gradient-fullscreen {
+  width: 100vw;
+  height: 100vh;
+  background: ${currentGradientData.css};
+}
+
+/* Alternative: Cover container */
+.gradient-cover {
+  width: 100%;
+  height: 100%;
+  background: ${currentGradientData.css};
+  background-size: cover;
+  background-position: center;
+}`;
+
+            downloadFile(cssContent, filename, 'text/css');
+        }
+
+        function exportSCSS() {
+            if (!currentGradientData) {
+                alert('Please generate a gradient first!');
+                return;
+            }
+
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            const filename = `gradient-${currentGradientData.type}-${timestamp}.scss`;
+            
+            const { width, height } = getExportDimensions();
+            const { colors } = currentGradientData;
+            
+            // Create SCSS variables
+            let scssVariables = colors.map((color, index) => 
+                `$gradient-color-${index + 1}: ${color};`
+            ).join('\n');
+            
+            const scssContent = `// Gradient exported from Ultimate Gradient Generator
+// Generated on: ${new Date().toLocaleString()}
+// Type: ${currentGradientData.type}
+${currentGradientData.name ? `// Name: ${currentGradientData.name}` : ''}
+
+// Color Variables
+${scssVariables}
+
+// Gradient Variable
+$gradient: ${currentGradientData.css};
+
+// Mixins
+@mixin gradient-background() {
+  background: $gradient;
+}
+
+@mixin gradient-size($width: ${width}px, $height: ${height}px) {
+  width: $width;
+  height: $height;
+  @include gradient-background();
+}
+
+// Classes
+.gradient {
+  @include gradient-size();
+}
+
+.gradient-fullscreen {
+  @include gradient-size(100vw, 100vh);
+}
+
+.gradient-cover {
+  @include gradient-size(100%, 100%);
+  background-size: cover;
+  background-position: center;
+}`;
+
+            downloadFile(scssContent, filename, 'text/scss');
+        }
+
+        function exportPreset() {
+            if (!currentGradientData) {
+                alert('Please generate a gradient first!');
+                return;
+            }
+
+            const presetName = prompt('Enter a name for this preset:', currentGradientData.name || 'My Gradient');
+            if (!presetName) return;
+
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            const filename = `gradient-preset-${presetName.replace(/[^a-zA-Z0-9]/g, '-')}-${timestamp}.json`;
+            
+            const presetData = {
+                name: presetName,
+                type: currentGradientData.type,
+                created: new Date().toISOString(),
+                colors: currentGradientData.colors,
+                css: currentGradientData.css,
+                ...(currentGradientData.stops && { stops: currentGradientData.stops }),
+                ...(currentGradientData.settings && { settings: currentGradientData.settings }),
+                ...(currentGradientData.effects && { effects: currentGradientData.effects })
+            };
+
+            downloadFile(JSON.stringify(presetData, null, 2), filename, 'application/json');
+        }
+
+        function exportPalette() {
+            if (!currentGradientData) {
+                alert('Please generate a gradient first!');
+                return;
+            }
+
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            const filename = `color-palette-${timestamp}.json`;
+            
+            const paletteData = {
+                name: currentGradientData.name || 'Exported Palette',
+                type: currentGradientData.type,
+                created: new Date().toISOString(),
+                colors: currentGradientData.colors.map((color, index) => ({
+                    name: `Color ${index + 1}`,
+                    value: color,
+                    hex: color.startsWith('#') ? color : rgbToHex(color),
+                    rgb: color.startsWith('#') ? hexToRgb(color) : color
+                }))
+            };
+
+            downloadFile(JSON.stringify(paletteData, null, 2), filename, 'application/json');
+        }
+
+        function exportJSON() {
+            if (!currentGradientData) {
+                alert('Please generate a gradient first!');
+                return;
+            }
+
+            const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+            const filename = `gradient-data-${timestamp}.json`;
+            
+            const exportData = {
+                ...currentGradientData,
+                exported: new Date().toISOString(),
+                exportSettings: {
+                    format: selectedExportFormat,
+                    dimensions: getExportDimensions()
+                }
+            };
+
+            downloadFile(JSON.stringify(exportData, null, 2), filename, 'application/json');
+        }
+
+        // Utility functions for color conversion
+        function rgbToHex(rgb) {
+            const match = rgb.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+            if (!match) return rgb;
+            
+            const [, r, g, b] = match;
+            return `#${parseInt(r).toString(16).padStart(2, '0')}${parseInt(g).toString(16).padStart(2, '0')}${parseInt(b).toString(16).padStart(2, '0')}`;
+        }
+
+        function hexToRgb(hex) {
+            const match = hex.match(/^#([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i);
+            if (!match) return hex;
+            
+            const [, r, g, b] = match;
+            return `rgb(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)})`;
+        }
+
+        // Initialize
+        function init() {
+            switchMode('image');
+        }
+
+        init();
+    </script>
+</body>
+</html>
