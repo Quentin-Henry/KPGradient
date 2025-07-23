@@ -842,6 +842,338 @@ let enhancedEffectsEnabled = false;
 let currentGradientData = null;
 let selectedExportFormat = 'png';
 
+// Add after your existing global variables
+let invisiblePatternCanvas = null;
+let invisiblePatternCtx = null;
+
+// Initialize invisible pattern canvas
+function initInvisiblePatternCanvas() {
+    invisiblePatternCanvas = document.createElement('canvas');
+    invisiblePatternCanvas.width = 400;
+    invisiblePatternCanvas.height = 533;
+    invisiblePatternCtx = invisiblePatternCanvas.getContext('2d');
+    
+    // Don't append to DOM - keep it invisible!
+    // This canvas exists only in memory
+}
+
+// Generate pattern on invisible canvas with transparent background
+function generateInvisiblePatternOverlay() {
+    if (!invisiblePatternCanvas) initInvisiblePatternCanvas();
+    
+    // Clear with transparent background
+    invisiblePatternCtx.clearRect(0, 0, 400, 533);
+    
+    const filterValue = enhancedFilterType.value;
+    if (filterValue === 'none') return;
+    
+    const params = {
+        intensity: parseInt(enhancedIntensity.value),
+        opacity: parseInt(enhancedOpacity.value),
+        scale: parseInt(enhancedScale.value)
+    };
+    
+    // Create pattern with transparency
+    const patternImageData = invisiblePatternCtx.createImageData(400, 533);
+    generatePatternWithTransparency(patternImageData.data, 400, 533, filterValue, params);
+    invisiblePatternCtx.putImageData(patternImageData, 0, 0);
+}
+
+// Enhanced pattern generation with proper transparency
+function generatePatternWithTransparency(data, width, height, filterType, params) {
+    const { intensity, opacity, scale } = params;
+    
+    // Initialize all pixels as transparent
+    for (let i = 0; i < data.length; i += 4) {
+        data[i + 3] = 0; // Alpha = 0 (transparent)
+    }
+    
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const index = (y * width + x) * 4;
+            let patternValue = getPatternValue(x, y, filterType, params);
+            
+            // Only create visible pixels where pattern has significant value
+            if (Math.abs(patternValue) > 0.05) {
+                const alpha = Math.min(255, Math.abs(patternValue * intensity * opacity * 0.01));
+                
+                if (patternValue > 0) {
+                    // Light pattern areas - white with alpha
+                    data[index] = 255;
+                    data[index + 1] = 255;
+                    data[index + 2] = 255;
+                    data[index + 3] = alpha;
+                } else {
+                    // Dark pattern areas - black with alpha
+                    data[index] = 0;
+                    data[index + 1] = 0;
+                    data[index + 2] = 0;
+                    data[index + 3] = alpha;
+                }
+            }
+        }
+    }
+}
+
+// Unified pattern value calculator
+function getPatternValue(x, y, filterType, params) {
+    const { scale } = params;
+    
+    switch (filterType) {
+        case 'subtleGrain':
+            return generateSubtleGrainValue(x, y, scale);
+        case 'fabricWeave':
+            return generateFabricWeaveValue(x, y, scale);
+        case 'paperTexture':
+            return generatePaperTextureValue(x, y, scale);
+        case 'crosshatch':
+            return generateCrosshatchValue(x, y, scale);
+        case 'brushStroke':
+            return generateBrushStrokeValue(x, y, scale);
+        case 'linen':
+            return generateLinenValue(x, y, scale);
+        case 'metallic':
+            return generateMetallicValue(x, y, scale);
+        case 'concrete':
+            return generateConcreteValue(x, y, scale);
+        case 'velvet':
+            return generateVelvetValue(x, y, scale);
+        case 'interference':
+            return generateInterferenceValue(x, y, scale);
+        default:
+            return 0;
+    }
+}
+
+// Pattern value generators (return -1 to 1)
+function generateSubtleGrainValue(x, y, scale) {
+    const coarse = pseudoRandom(Math.floor(x / scale), Math.floor(y / scale), 12345) - 0.5;
+    const fine = pseudoRandom(x, y, 54321) - 0.5;
+    const medium = pseudoRandom(Math.floor(x / (scale * 0.5)), Math.floor(y / (scale * 0.5)), 98765) - 0.5;
+    return (coarse * 0.4 + fine * 0.3 + medium * 0.3) * 2;
+}
+
+function generateFabricWeaveValue(x, y, scale) {
+    const warp = Math.sin(x * Math.PI / scale) > 0;
+    const weft = Math.sin(y * Math.PI / scale) > 0;
+    
+    if (warp && !weft) return 0.6;
+    else if (!warp && weft) return -0.6;
+    else if (warp && weft) return 0.2;
+    else return -0.2;
+}
+
+function generatePaperTextureValue(x, y, scale) {
+    const fiber1 = perlinNoise(x, y, scale) - 0.5;
+    const fiber2 = perlinNoise(x + 1000, y + 1000, scale * 0.5) - 0.5;
+    const fiber3 = pseudoRandom(Math.floor(x / 2), Math.floor(y / 2), 13579) - 0.5;
+    return (fiber1 * 0.5 + fiber2 * 0.3 + fiber3 * 0.2) * 2;
+}
+
+function generateCrosshatchValue(x, y, scale) {
+    const line1 = Math.sin(x * Math.PI / scale);
+    const line2 = Math.sin(y * Math.PI / scale);
+    const crosshatch = (Math.abs(line1) < 0.3 ? -0.6 : 0.2) + (Math.abs(line2) < 0.3 ? -0.6 : 0.2);
+    return crosshatch * 0.5;
+}
+
+function generateBrushStrokeValue(x, y, scale) {
+    const strokePattern = Math.sin(x * Math.PI / scale) * Math.exp(-Math.abs((x % scale) - scale/2) / (scale * 0.3));
+    const brushTexture = perlinNoise(x, y, scale * 0.3) * 0.5 + strokePattern * 0.5;
+    return brushTexture;
+}
+
+function generateLinenValue(x, y, scale) {
+    const warp = Math.sin(x * Math.PI / scale) + perlinNoise(x, y, scale * 0.5) * 0.3;
+    const weft = Math.sin(y * Math.PI / scale) + perlinNoise(x + 500, y + 500, scale * 0.5) * 0.3;
+    return (warp * weft) * 0.5;
+}
+
+function generateMetallicValue(x, y, scale) {
+    const brushLines = Math.sin(x * Math.PI / (scale * 0.2)) * 0.3;
+    const scratches = pseudoRandom(Math.floor(x / 3), Math.floor(y / 20), 11111) * 0.2;
+    const microTexture = perlinNoise(x, y, scale * 0.1) * 0.1;
+    return brushLines + scratches + microTexture;
+}
+
+function generateConcreteValue(x, y, scale) {
+    const aggregate = worleyNoise(x, y, scale) * 0.6;
+    const surface = perlinNoise(x, y, scale * 0.3) * 0.4;
+    const pits = pseudoRandom(Math.floor(x / 5), Math.floor(y / 5), 22222) * 0.2;
+    return (aggregate + surface + pits) - 0.5;
+}
+
+function generateVelvetValue(x, y, scale) {
+    const pile = Math.sin(x * Math.PI / scale) * Math.exp(-Math.abs((y % scale) - scale/2) / (scale * 0.4));
+    const softness = perlinNoise(x, y, scale * 0.5) * 0.2;
+    return (pile + softness) * 0.8;
+}
+
+function generateInterferenceValue(x, y, scale) {
+    const wave1 = Math.sin(x * Math.PI / scale) * Math.cos(y * Math.PI / scale);
+    const wave2 = Math.sin((x + y) * Math.PI / (scale * 1.2)) * Math.cos((x - y) * Math.PI / (scale * 1.2));
+    const wave3 = Math.sin(x * Math.PI / (scale * 0.7)) * Math.sin(y * Math.PI / (scale * 0.7));
+    return (wave1 * 0.5 + wave2 * 0.3 + wave3 * 0.2);
+}
+
+// Modified enhanced filter application
+function applyEnhancedFilter() {
+    const filterValue = enhancedFilterType.value;
+    if (filterValue === 'none') return;
+    
+    // Generate pattern on invisible canvas
+    generateInvisiblePatternOverlay();
+    
+    // Apply pattern to main gradient canvas using composite operation
+    gradientCtx.globalCompositeOperation = 'overlay';
+    gradientCtx.drawImage(invisiblePatternCanvas, 0, 0);
+    gradientCtx.globalCompositeOperation = 'source-over';
+}
+
+// PNG Pattern Export (with transparency)
+function exportPatternPNG() {
+    if (!currentGradientData || !enhancedEffectsEnabled || enhancedFilterType.value === 'none') {
+        alert('Please enable material filters and select a pattern first!');
+        return;
+    }
+    
+    // Create high-resolution export canvas
+    const exportCanvas = document.createElement('canvas');
+    exportCanvas.width = 800;
+    exportCanvas.height = 1066;
+    const exportCtx = exportCanvas.getContext('2d');
+    
+    const params = {
+        intensity: parseInt(enhancedIntensity.value),
+        opacity: parseInt(enhancedOpacity.value),
+        scale: parseInt(enhancedScale.value) * 2 // Scale up for higher resolution
+    };
+    
+    // Generate high-res pattern
+    const exportImageData = exportCtx.createImageData(800, 1066);
+    generatePatternWithTransparency(exportImageData.data, 800, 1066, enhancedFilterType.value, params);
+    exportCtx.putImageData(exportImageData, 0, 0);
+    
+    // Export as PNG with transparency
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    const filename = `pattern-${enhancedFilterType.value}-${timestamp}.png`;
+    
+    exportCanvas.toBlob((blob) => {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        link.click();
+        URL.revokeObjectURL(url);
+    }, 'image/png');
+}
+
+// SVG Pattern Export (vector-based)
+function exportPatternSVG() {
+    if (!currentGradientData || !enhancedEffectsEnabled || enhancedFilterType.value === 'none') {
+        alert('Please enable material filters and select a pattern first!');
+        return;
+    }
+    
+    const filterValue = enhancedFilterType.value;
+    const params = {
+        intensity: parseInt(enhancedIntensity.value),
+        opacity: parseInt(enhancedOpacity.value) / 100,
+        scale: parseInt(enhancedScale.value)
+    };
+    
+    let svgContent = generatePatternSVG(filterValue, params);
+    
+    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+    const filename = `pattern-${filterValue}-${timestamp}.svg`;
+    downloadFile(svgContent, filename, 'image/svg+xml');
+}
+
+// SVG pattern generator
+function generatePatternSVG(filterType, params) {
+    const { scale, opacity } = params;
+    const width = 800;
+    const height = 1066;
+    
+    let patternDef = '';
+    
+    switch (filterType) {
+        case 'fabricWeave':
+            patternDef = `
+    <pattern id="pattern" patternUnits="userSpaceOnUse" width="${scale * 2}" height="${scale * 2}">
+      <rect width="${scale}" height="${scale}" fill="rgba(255,255,255,${opacity * 0.3})"/>
+      <rect x="${scale}" y="${scale}" width="${scale}" height="${scale}" fill="rgba(255,255,255,${opacity * 0.3})"/>
+      <rect x="${scale}" y="0" width="${scale}" height="${scale}" fill="rgba(0,0,0,${opacity * 0.3})"/>
+      <rect x="0" y="${scale}" width="${scale}" height="${scale}" fill="rgba(0,0,0,${opacity * 0.3})"/>
+    </pattern>`;
+            break;
+            
+        case 'crosshatch':
+            const strokeWidth = Math.max(1, scale * 0.1);
+            patternDef = `
+    <pattern id="pattern" patternUnits="userSpaceOnUse" width="${scale}" height="${scale}">
+      <line x1="0" y1="0" x2="${scale}" y2="${scale}" stroke="rgba(0,0,0,${opacity})" stroke-width="${strokeWidth}"/>
+      <line x1="0" y1="${scale}" x2="${scale}" y2="0" stroke="rgba(0,0,0,${opacity})" stroke-width="${strokeWidth}"/>
+    </pattern>`;
+            break;
+            
+        case 'linen':
+            patternDef = `
+    <pattern id="pattern" patternUnits="userSpaceOnUse" width="${scale}" height="${scale}">
+      <rect width="100%" height="100%" fill="rgba(240,240,240,${opacity * 0.3})"/>
+      <circle cx="${scale * 0.25}" cy="${scale * 0.25}" r="1" fill="rgba(200,200,200,${opacity})"/>
+      <circle cx="${scale * 0.75}" cy="${scale * 0.75}" r="1" fill="rgba(200,200,200,${opacity})"/>
+      <line x1="0" y1="${scale * 0.5}" x2="${scale}" y2="${scale * 0.5}" stroke="rgba(220,220,220,${opacity})" stroke-width="0.5"/>
+      <line x1="${scale * 0.5}" y1="0" x2="${scale * 0.5}" y2="${scale}" stroke="rgba(220,220,220,${opacity})" stroke-width="0.5"/>
+    </pattern>`;
+            break;
+            
+        default:
+            // Fallback noise pattern
+            patternDef = `
+    <pattern id="pattern" patternUnits="userSpaceOnUse" width="${scale}" height="${scale}">
+      <rect width="100%" height="100%" fill="rgba(128,128,128,${opacity * 0.1})"/>
+    </pattern>`;
+            break;
+    }
+    
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    ${patternDef}
+  </defs>
+  <rect width="100%" height="100%" fill="url(#pattern)"/>
+</svg>`;
+}
+
+// Add pattern export buttons to the export section
+function addPatternExportButtons() {
+    const exportGrid = document.querySelector('.export-grid');
+    
+    // PNG Pattern Export Button
+    const pngPatternBtn = document.createElement('button');
+    pngPatternBtn.className = 'export-btn';
+    pngPatternBtn.innerHTML = '🎨 Pattern PNG';
+    pngPatternBtn.onclick = exportPatternPNG;
+    exportGrid.appendChild(pngPatternBtn);
+    
+    // SVG Pattern Export Button
+    const svgPatternBtn = document.createElement('button');
+    svgPatternBtn.className = 'export-btn';
+    svgPatternBtn.innerHTML = '🎯 Pattern SVG';
+    svgPatternBtn.onclick = exportPatternSVG;
+    exportGrid.appendChild(svgPatternBtn);
+}
+
+// Initialize everything
+function initPatternExport() {
+    initInvisiblePatternCanvas();
+    addPatternExportButtons();
+}
+
+// Call this when the page loads
+document.addEventListener('DOMContentLoaded', initPatternExport);
+
 // Time-based gradient configurations
 const timeGradients = {
     dawn: {
