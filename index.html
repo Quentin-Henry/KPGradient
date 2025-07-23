@@ -859,34 +859,80 @@ function initInvisiblePatternCanvas() {
 
 // Generate pattern on invisible canvas with transparent background
 function generateInvisiblePatternOverlay() {
-    if (!invisiblePatternCanvas) initInvisiblePatternCanvas();
+    console.log('DEBUG: generateInvisiblePatternOverlay called');
     
+    if (!invisiblePatternCanvas) {
+        console.log('DEBUG: Initializing invisible pattern canvas');
+        initInvisiblePatternCanvas();
+    }
+    
+    if (!invisiblePatternCanvas) {
+        console.error('DEBUG: Failed to create invisible pattern canvas!');
+        return;
+    }
+    
+    console.log('DEBUG: Clearing invisible canvas');
     // Clear with transparent background
     invisiblePatternCtx.clearRect(0, 0, 400, 533);
     
-    const filterValue = enhancedFilterType.value;
-    if (filterValue === 'none') return;
+    const filterValue = enhancedFilterType?.value;
+    console.log('DEBUG: Filter value in overlay:', filterValue);
+    
+    if (filterValue === 'none') {
+        console.log('DEBUG: Filter is none - returning early');
+        return;
+    }
     
     const params = {
-        intensity: parseInt(enhancedIntensity.value),
-        opacity: parseInt(enhancedOpacity.value),
-        scale: parseInt(enhancedScale.value)
+        intensity: parseInt(enhancedIntensity?.value || 25),
+        opacity: parseInt(enhancedOpacity?.value || 60),
+        scale: parseInt(enhancedScale?.value || 15)
     };
     
-    // Create pattern with transparency
+    console.log('DEBUG: Pattern parameters:', params);
+    
+    // Create pattern with transparency and fade
+    console.log('DEBUG: Creating image data');
     const patternImageData = invisiblePatternCtx.createImageData(400, 533);
-    generatePatternWithTransparency(patternImageData.data, 400, 533, filterValue, params);
-    invisiblePatternCtx.putImageData(patternImageData, 0, 0);
+    
+    // Check if fade controls exist, otherwise use default quadratic fade
+    const fadeSelect = document.getElementById('fadeType');
+    const fadeType = fadeSelect ? fadeSelect.value : 'quadratic';
+    
+    console.log('DEBUG: Fade type selected:', fadeType);
+    console.log('DEBUG: About to call pattern generation function...');
+    
+    try {
+        if (fadeType === 'none') {
+            console.log('DEBUG: Calling generatePatternWithTransparency');
+            generatePatternWithTransparency(patternImageData.data, 400, 533, filterValue, params);
+        } else {
+            console.log('DEBUG: Calling generatePatternWithCustomFade');
+            generatePatternWithCustomFade(patternImageData.data, 400, 533, filterValue, params, fadeType);
+        }
+        
+        console.log('DEBUG: Pattern generation completed, putting data to canvas');
+        invisiblePatternCtx.putImageData(patternImageData, 0, 0);
+        console.log('DEBUG: Pattern overlay generation complete');
+        
+    } catch (error) {
+        console.error('DEBUG: Error during pattern generation:', error);
+    }
 }
-
 // Enhanced pattern generation with proper transparency
+// DEBUG STEP 1: Add console logging to see if fade is working
 function generatePatternWithTransparency(data, width, height, filterType, params) {
     const { intensity, opacity, scale } = params;
+    
+    console.log('Generating pattern with fade:', { filterType, intensity, opacity, scale });
     
     // Initialize all pixels as transparent
     for (let i = 0; i < data.length; i += 4) {
         data[i + 3] = 0; // Alpha = 0 (transparent)
     }
+    
+    let pixelsWithPattern = 0;
+    let pixelsWithFade = 0;
     
     for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
@@ -895,24 +941,270 @@ function generatePatternWithTransparency(data, width, height, filterType, params
             
             // Only create visible pixels where pattern has significant value
             if (Math.abs(patternValue) > 0.05) {
-                const alpha = Math.min(255, Math.abs(patternValue * intensity * opacity * 0.01));
+                pixelsWithPattern++;
                 
-                if (patternValue > 0) {
-                    // Light pattern areas - white with alpha
-                    data[index] = 255;
-                    data[index + 1] = 255;
-                    data[index + 2] = 255;
-                    data[index + 3] = alpha;
-                } else {
-                    // Dark pattern areas - black with alpha
-                    data[index] = 0;
-                    data[index + 1] = 0;
-                    data[index + 2] = 0;
-                    data[index + 3] = alpha;
+                // GRADIENT MASKING: Calculate fade based on vertical position
+                const gradientPosition = y / height; // 0 at top, 1 at bottom
+                const fadeStrength = Math.pow(gradientPosition, 2); // Quadratic fade curve
+                
+                // Base alpha calculation
+                const baseAlpha = Math.abs(patternValue * intensity * opacity * 0.01);
+                
+                // Apply gradient mask to alpha
+                const maskedAlpha = Math.min(255, baseAlpha * fadeStrength);
+                
+                if (maskedAlpha > 1) { // Only render if alpha is significant
+                    pixelsWithFade++;
+                    
+                    if (patternValue > 0) {
+                        // Light pattern areas - white with masked alpha
+                        data[index] = 255;
+                        data[index + 1] = 255;
+                        data[index + 2] = 255;
+                        data[index + 3] = maskedAlpha;
+                    } else {
+                        // Dark pattern areas - black with masked alpha
+                        data[index] = 0;
+                        data[index + 1] = 0;
+                        data[index + 2] = 0;
+                        data[index + 3] = maskedAlpha;
+                    }
                 }
             }
         }
     }
+    
+    console.log(`Pattern stats: ${pixelsWithPattern} pixels with pattern, ${pixelsWithFade} pixels after fade`);
+}
+
+function generatePatternWithCustomFade(data, width, height, filterType, params, fadeType = 'quadratic') {
+    const { intensity, opacity, scale } = params;
+    
+    // Initialize all pixels as transparent
+    for (let i = 0; i < data.length; i += 4) {
+        data[i + 3] = 0;
+    }
+    
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const index = (y * width + x) * 4;
+            let patternValue = getPatternValue(x, y, filterType, params);
+            
+            if (Math.abs(patternValue) > 0.05) {
+                const gradientPosition = y / height;
+                
+                // Different fade curve options
+                let fadeStrength;
+                switch (fadeType) {
+                    case 'linear':
+                        fadeStrength = gradientPosition;
+                        break;
+                    case 'quadratic':
+                        fadeStrength = Math.pow(gradientPosition, 2);
+                        break;
+                    case 'cubic':
+                        fadeStrength = Math.pow(gradientPosition, 3);
+                        break;
+                    case 'smooth':
+                        // Smooth step function
+                        fadeStrength = gradientPosition * gradientPosition * (3 - 2 * gradientPosition);
+                        break;
+                    case 'exponential':
+                        fadeStrength = Math.pow(gradientPosition, 1.5);
+                        break;
+                    default:
+                        fadeStrength = Math.pow(gradientPosition, 2);
+                }
+                
+                const baseAlpha = Math.abs(patternValue * intensity * opacity * 0.01);
+                const maskedAlpha = Math.min(255, baseAlpha * fadeStrength);
+                
+                if (maskedAlpha > 1) {
+                    if (patternValue > 0) {
+                        data[index] = 255;
+                        data[index + 1] = 255;
+                        data[index + 2] = 255;
+                        data[index + 3] = maskedAlpha;
+                    } else {
+                        data[index] = 0;
+                        data[index + 1] = 0;
+                        data[index + 2] = 0;
+                        data[index + 3] = maskedAlpha;
+                    }
+                }
+            }
+        }
+    }
+}
+
+function addFadeControls() {
+    console.log('DEBUG: addFadeControls called');
+    
+    const enhancedEffectsControls = document.getElementById('enhanced-effects-controls');
+    if (!enhancedEffectsControls) {
+        console.error('DEBUG: enhanced-effects-controls not found!');
+        return;
+    }
+    
+    // Check if fade controls already exist
+    if (document.getElementById('fadeType')) {
+        console.log('DEBUG: Fade controls already exist');
+        return;
+    }
+    
+    // Add fade type control
+    const fadeControlGroup = document.createElement('div');
+    fadeControlGroup.className = 'control-group';
+    fadeControlGroup.innerHTML = `
+        <label>Pattern Distribution</label>
+        <select id="fadeType">
+            <option value="none">Uniform</option>
+            <option value="linear">Follow Brightness</option>
+            <option value="quadratic" selected>Gradient Highlight</option>
+            <option value="cubic">Center Focus</option>
+            <option value="smooth">Smooth Accent</option>
+            <option value="exponential">Bright Burst</option>
+            <option value="inverse">Shadow Pattern</option>
+        </select>
+    `;
+    
+    // Insert before the preset buttons
+    const presetButtons = enhancedEffectsControls.querySelector('.enhanced-presets');
+    if (presetButtons) {
+        enhancedEffectsControls.insertBefore(fadeControlGroup, presetButtons);
+    } else {
+        enhancedEffectsControls.appendChild(fadeControlGroup);
+    }
+    
+    console.log('DEBUG: Fade controls added to DOM');
+    
+    // Add event listener
+    const fadeSelect = document.getElementById('fadeType');
+    if (fadeSelect) {
+        fadeSelect.addEventListener('change', () => {
+            console.log('DEBUG: Fade type changed to:', fadeSelect.value);
+            if (enhancedEffectsEnabled && !isAnimating) {
+                if (currentMode === 'time') {
+                    updateTimeGradient(timeInput.value);
+                } else if (currentMode === 'image' && extractedColors.length > 0) {
+                    generateImageGradient();
+                }
+            }
+        });
+        console.log('DEBUG: Fade select event listener added');
+    } else {
+        console.error('DEBUG: Failed to find fadeType select after adding it!');
+    }
+}
+
+function testFadeSystem() {
+    console.log('=== FADE SYSTEM TEST ===');
+    
+    // Check if fade controls exist
+    const fadeSelect = document.getElementById('fadeType');
+    console.log('Fade select found:', !!fadeSelect);
+    if (fadeSelect) {
+        console.log('Fade select value:', fadeSelect.value);
+    }
+    
+    // Check enhanced effects state
+    console.log('Enhanced effects enabled:', enhancedEffectsEnabled);
+    console.log('Current mode:', currentMode);
+    
+    // Test pattern generation
+    if (enhancedFilterType) {
+        console.log('Filter type:', enhancedFilterType.value);
+        const testParams = {
+            intensity: 25,
+            opacity: 60,
+            scale: 15
+        };
+        
+        const testValue = getPatternValue(100, 200, 'fabricWeave', testParams);
+        console.log('Test pattern value:', testValue);
+        
+        // Test fade calculation
+        const gradientPos = 0.5; // Middle of gradient
+        const fadeStrength = Math.pow(gradientPos, 2); // Quadratic
+        console.log('Test fade strength at 50%:', fadeStrength);
+        console.log('Test final effect:', testValue * 25 * 0.6 * fadeStrength * 2.0);
+    }
+    
+    console.log('=== END FADE SYSTEM TEST ===');
+}
+
+function quickFadeTest() {
+    console.log('=== QUICK FADE TEST ===');
+    
+    const fadeTypes = ['none', 'linear', 'quadratic', 'cubic', 'smooth', 'exponential'];
+    const fadeSelect = document.getElementById('fadeType');
+    
+    if (!fadeSelect) {
+        console.error('Fade select not found!');
+        return;
+    }
+    
+    let currentIndex = 0;
+    
+    function cycleFades() {
+        if (currentIndex >= fadeTypes.length) {
+            console.log('Fade test complete');
+            return;
+        }
+        
+        const fadeType = fadeTypes[currentIndex];
+        console.log(`Testing fade type: ${fadeType}`);
+        
+        fadeSelect.value = fadeType;
+        
+        // Trigger update
+        if (enhancedEffectsEnabled && currentMode === 'time') {
+            updateTimeGradient(timeInput.value);
+        }
+        
+        currentIndex++;
+        setTimeout(cycleFades, 2000); // Wait 2 seconds between changes
+    }
+    
+    cycleFades();
+}
+    console.log('=== END FADE SYSTEM TEST ===');
+
+
+    function quickFadeTest() {
+    console.log('=== QUICK FADE TEST ===');
+    
+    const fadeTypes = ['none', 'linear', 'quadratic', 'cubic', 'smooth', 'exponential'];
+    const fadeSelect = document.getElementById('fadeType');
+    
+    if (!fadeSelect) {
+        console.error('Fade select not found!');
+        return;
+    }
+    
+    let currentIndex = 0;
+    
+    function cycleFades() {
+        if (currentIndex >= fadeTypes.length) {
+            console.log('Fade test complete');
+            return;
+        }
+        
+        const fadeType = fadeTypes[currentIndex];
+        console.log(`Testing fade type: ${fadeType}`);
+        
+        fadeSelect.value = fadeType;
+        
+        // Trigger update
+        if (enhancedEffectsEnabled && currentMode === 'time') {
+            updateTimeGradient(timeInput.value);
+        }
+        
+        currentIndex++;
+        setTimeout(cycleFades, 2000); // Wait 2 seconds between changes
+    }
+    
+    cycleFades();
 }
 
 // Unified pattern value calculator
@@ -1017,18 +1309,131 @@ function generateInterferenceValue(x, y, scale) {
 }
 
 // Modified enhanced filter application
+// REPLACE your existing applyEnhancedFilter function with this:
 function applyEnhancedFilter() {
-    const filterValue = enhancedFilterType.value;
-    if (filterValue === 'none') return;
+    console.log('DEBUG: applyEnhancedFilter called');
     
-    // Generate pattern on invisible canvas
-    generateInvisiblePatternOverlay();
+    const filterValue = enhancedFilterType?.value;
+    console.log('DEBUG: Filter value:', filterValue);
     
-    // Apply pattern to main gradient canvas using composite operation
-    gradientCtx.globalCompositeOperation = 'overlay';
-    gradientCtx.drawImage(invisiblePatternCanvas, 0, 0);
-    gradientCtx.globalCompositeOperation = 'source-over';
+    if (!enhancedFilterType) {
+        console.error('DEBUG: enhancedFilterType element not found!');
+        return;
+    }
+    
+    if (filterValue === 'none') {
+        console.log('DEBUG: Filter is set to none - exiting');
+        return;
+    }
+    
+    // Use the old direct application method instead of invisible canvas for now
+    const imageData = gradientCtx.getImageData(0, 0, 400, 533);
+    const params = {
+        intensity: parseInt(enhancedIntensity?.value || 25),
+        opacity: parseInt(enhancedOpacity?.value || 60),
+        scale: parseInt(enhancedScale?.value || 15)
+    };
+    
+    console.log('DEBUG: Applying filter with params:', params);
+    
+    // Apply the filter with fade
+    applyFilterWithFade(imageData, filterValue, params);
+    gradientCtx.putImageData(imageData, 0, 0);
+    
+    console.log('DEBUG: Enhanced filter application complete');
 }
+
+
+function applyFilterWithFade(imageData, filterType, params) {
+    const data = imageData.data;
+    const width = 400;
+    const height = 533;
+    
+    // Get fade type
+    const fadeSelect = document.getElementById('fadeType');
+    const fadeType = fadeSelect ? fadeSelect.value : 'quadratic';
+    
+    console.log('DEBUG: Applying filter with fade type:', fadeType);
+    
+    for (let y = 0; y < height; y++) {
+        for (let x = 0; x < width; x++) {
+            const index = (y * width + x) * 4;
+            
+            // Get current pixel values
+            const r = data[index];
+            const g = data[index + 1];
+            const b = data[index + 2];
+            
+            // Calculate luminance of current pixel (how bright it is)
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            
+            // Get the pattern value for this pixel
+            let patternValue = getPatternValue(x, y, filterType, params);
+            
+            let fadeStrength;
+            if (fadeType === 'none') {
+                fadeStrength = 1;
+            } else {
+                // Calculate distance from gradient center (bottom center)
+                const centerX = width / 2;
+                const centerY = height; // Bottom of canvas
+                const distanceFromCenter = Math.sqrt(Math.pow(x - centerX, 2) + Math.pow(y - centerY, 2));
+                const maxDistance = Math.sqrt(Math.pow(centerX, 2) + Math.pow(centerY, 2));
+                const radialPosition = Math.min(distanceFromCenter / maxDistance, 1);
+                
+                switch (fadeType) {
+                    case 'linear':
+                        // Pattern stronger in brighter areas
+                        fadeStrength = luminance;
+                        break;
+                    case 'quadratic':
+                        // Pattern follows gradient curve - stronger at center/bright areas
+                        fadeStrength = Math.pow(1 - radialPosition, 2) * luminance;
+                        break;
+                    case 'cubic':
+                        // Very concentrated in bright center
+                        fadeStrength = Math.pow(1 - radialPosition, 3) * Math.pow(luminance, 2);
+                        break;
+                    case 'smooth':
+                        // Smooth transition following luminance
+                        const smoothLum = luminance * luminance * (3 - 2 * luminance);
+                        fadeStrength = smoothLum * (1 - radialPosition * 0.5);
+                        break;
+                    case 'exponential':
+                        // Exponential falloff from bright areas
+                        fadeStrength = Math.pow(luminance, 1.5) * Math.exp(-radialPosition * 2);
+                        break;
+                    case 'inverse':
+                        // Pattern stronger in darker areas (shadow effect)
+                        fadeStrength = (1 - luminance) * Math.pow(1 - radialPosition, 1.5);
+                        break;
+                    default:
+                        fadeStrength = Math.pow(1 - radialPosition, 2) * luminance;
+                }
+            }
+            
+            // Apply pattern as highlight/accent
+            const baseEffect = patternValue * params.intensity * (params.opacity / 100);
+            const fadedEffect = baseEffect * fadeStrength * 3.0; // Increased for visibility
+            
+            // Apply the pattern effect
+            if (fadeType === 'inverse') {
+                // For inverse, darken instead of lighten
+                data[index] = Math.max(0, Math.min(255, r - Math.abs(fadedEffect)));
+                data[index + 1] = Math.max(0, Math.min(255, g - Math.abs(fadedEffect)));
+                data[index + 2] = Math.max(0, Math.min(255, b - Math.abs(fadedEffect)));
+            } else {
+                // Normal highlight effect
+                data[index] = Math.max(0, Math.min(255, r + fadedEffect));
+                data[index + 1] = Math.max(0, Math.min(255, g + fadedEffect));
+                data[index + 2] = Math.max(0, Math.min(255, b + fadedEffect));
+            }
+        }
+    }
+    
+    console.log('DEBUG: Applied luminance-based fade with strength multiplier 3.0');
+}
+
 
 // PNG Pattern Export (with transparency)
 function exportPatternPNG() {
@@ -1049,14 +1454,23 @@ function exportPatternPNG() {
         scale: parseInt(enhancedScale.value) * 2 // Scale up for higher resolution
     };
     
-    // Generate high-res pattern
+    // Generate high-res pattern with fade
     const exportImageData = exportCtx.createImageData(800, 1066);
-    generatePatternWithTransparency(exportImageData.data, 800, 1066, enhancedFilterType.value, params);
+    
+    const fadeSelect = document.getElementById('fadeType');
+    const fadeType = fadeSelect ? fadeSelect.value : 'quadratic';
+    
+    if (fadeType === 'none') {
+        generatePatternWithTransparency(exportImageData.data, 800, 1066, enhancedFilterType.value, params);
+    } else {
+        generatePatternWithCustomFade(exportImageData.data, 800, 1066, enhancedFilterType.value, params, fadeType);
+    }
+    
     exportCtx.putImageData(exportImageData, 0, 0);
     
     // Export as PNG with transparency
     const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-    const filename = `pattern-${enhancedFilterType.value}-${timestamp}.png`;
+    const filename = `pattern-${enhancedFilterType.value}-${fadeType}-${timestamp}.png`;
     
     exportCanvas.toBlob((blob) => {
         const url = URL.createObjectURL(blob);
@@ -1987,9 +2401,17 @@ function generateImageGradient() {
     gradientCtx.fillStyle = grad;
     gradientCtx.fillRect(0, 0, 400, 533);
     
-    // Apply enhanced filter if enabled
+    // REPLACE this section:
+    // Apply enhanced filter if enabled (this will now use the new invisible canvas approach)
+    // if (enhancedEffectsEnabled) {
+    //     applyEnhancedFilter();
+    // }
+    
+    // NEW: Apply enhanced pattern overlay with real-time preview
     if (enhancedEffectsEnabled) {
-        applyEnhancedFilter();
+        console.log('Enhanced effects enabled for image - generating pattern overlay');
+        generateInvisiblePatternOverlay();
+        compositeInvisiblePattern();
     }
     
     const gradientCSS = `radial-gradient(ellipse ${ellipseWidth}px ${ellipseHeight}px at 50% 100%, ${colors.join(', ')})`;
@@ -2002,6 +2424,7 @@ function generateImageGradient() {
     
     updateResults(colors, gradientCSS);
 }
+
 
 // Time mode functions
 function initTimeMode() {
@@ -2020,6 +2443,8 @@ function createGradientString(gradient) {
 }
 
 function updateTimeGradient(timeString) {
+    console.log('updateTimeGradient called with:', timeString);
+    
     const category = getTimeCategory(timeString);
     const gradient = timeGradients[category];
     const formattedTime = formatTime(timeString);
@@ -2055,6 +2480,7 @@ function updateTimeGradient(timeString) {
 
     // Apply effects if enabled
     if (effectsEnabled) {
+        console.log('Applying optical effects');
         const tempCanvas = document.createElement('canvas');
         tempCanvas.width = 400;
         tempCanvas.height = 533;
@@ -2063,9 +2489,17 @@ function updateTimeGradient(timeString) {
         applyOpticalEffects(tempCanvas, gradient);
     }
     
-    // Apply enhanced filter if enabled
+    // Apply enhanced filter if enabled (REMOVE the old direct application)
+    // if (enhancedEffectsEnabled) {
+    //     console.log('Enhanced effects enabled - calling applyEnhancedFilter');
+    //     applyEnhancedFilter();
+    // }
+
+    // NEW: Apply enhanced pattern overlay with real-time preview
     if (enhancedEffectsEnabled) {
-        applyEnhancedFilter();
+        console.log('Enhanced effects enabled - generating pattern overlay');
+        generateInvisiblePatternOverlay();
+        compositeInvisiblePattern();
     }
 
     updateResults(gradient.colors, gradientCSS);
@@ -2183,20 +2617,92 @@ function toggleEffects() {
     }
 }
 
+function compositeInvisiblePattern() {
+    if (!invisiblePatternCanvas || !enhancedEffectsEnabled) {
+        console.log('DEBUG: Skipping composite - canvas or effects not available');
+        return;
+    }
+    
+    const filterValue = enhancedFilterType?.value;
+    if (filterValue === 'none') {
+        console.log('DEBUG: Skipping composite - filter is none');
+        return;
+    }
+    
+    console.log('DEBUG: Compositing invisible pattern onto main canvas');
+    
+    // Save current composite operation
+    const originalCompositeOp = gradientCtx.globalCompositeOperation;
+    
+    // Set blending mode for pattern overlay
+    // You can experiment with these modes:
+    gradientCtx.globalCompositeOperation = 'overlay';  // Default - good for highlights/shadows
+    // gradientCtx.globalCompositeOperation = 'multiply';    // Good for shadow effects
+    // gradientCtx.globalCompositeOperation = 'screen';      // Good for highlight effects
+    // gradientCtx.globalCompositeOperation = 'soft-light';  // Subtle lighting
+    
+    // Draw the invisible pattern canvas onto the main canvas
+    gradientCtx.drawImage(invisiblePatternCanvas, 0, 0);
+    
+    // Restore original composite operation
+    gradientCtx.globalCompositeOperation = originalCompositeOp;
+    
+    console.log('DEBUG: Pattern composite complete');
+}
+
+function compositeInvisiblePatternWithBlendMode() {
+    if (!invisiblePatternCanvas || !enhancedEffectsEnabled) return;
+    
+    const filterValue = enhancedFilterType?.value;
+    if (filterValue === 'none') return;
+    
+    const originalCompositeOp = gradientCtx.globalCompositeOperation;
+    
+    // Get selected blend mode
+    const blendModeSelect = document.getElementById('blendMode');
+    const blendMode = blendModeSelect ? blendModeSelect.value : 'overlay';
+    
+    gradientCtx.globalCompositeOperation = blendMode;
+    gradientCtx.drawImage(invisiblePatternCanvas, 0, 0);
+    gradientCtx.globalCompositeOperation = originalCompositeOp;
+}
+
+function updatePatternPreview() {
+    console.log('DEBUG: updatePatternPreview called');
+    
+    if (!enhancedEffectsEnabled) {
+        console.log('DEBUG: Enhanced effects not enabled');
+        return;
+    }
+    
+    // Generate the faded pattern on invisible canvas
+    generateInvisiblePatternOverlay();
+    
+    // Composite it onto the main canvas for real-time preview
+    compositeInvisiblePattern();
+}
+
 function toggleEnhancedEffects() {
+    console.log('toggleEnhancedEffects called');
     enhancedEffectsEnabled = !enhancedEffectsEnabled;
+    console.log('enhancedEffectsEnabled is now:', enhancedEffectsEnabled);
+    
     enhancedEffectsToggle.classList.toggle('active', enhancedEffectsEnabled);
     
     if (enhancedEffectsEnabled) {
         enhancedEffectsControls.classList.remove('disabled');
+        console.log('Enhanced effects controls enabled');
     } else {
         enhancedEffectsControls.classList.add('disabled');
+        console.log('Enhanced effects controls disabled');
     }
     
     // Re-render current gradient
     if (currentMode === 'time') {
+        console.log('Re-rendering time gradient');
         updateTimeGradient(timeInput.value);
     } else if (currentMode === 'image' && extractedColors.length > 0) {
+        console.log('Re-rendering image gradient');
         generateImageGradient();
     }
 }
@@ -2221,13 +2727,9 @@ document.querySelectorAll('.enhanced-preset-btn').forEach(btn => {
             document.querySelectorAll('.enhanced-preset-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             
-            // Re-render gradient
+            // NEW: Update pattern preview in real-time
             if (enhancedEffectsEnabled) {
-                if (currentMode === 'time') {
-                    updateTimeGradient(timeInput.value);
-                } else if (currentMode === 'image' && extractedColors.length > 0) {
-                    generateImageGradient();
-                }
+                updatePatternPreview();
             }
         }
     });
@@ -2543,15 +3045,112 @@ function exportJSON() {
     downloadFile(JSON.stringify(exportData, null, 2), filename, 'application/json');
 }
 
+
 // Initialize
 function init() {
+    console.log('=== INIT START ===');
+    
     switchMode('image');
+    
+    // Add fade controls
+    addFadeControls();
+    
+    // Test the system
+    setTimeout(() => {
+        testFadeSystem();
+    }, 100);
     
     // Set up global analyzeImage function for button
     window.analyzeImage = analyzeImage;
+    
+    console.log('=== INIT COMPLETE ===');
 }
 
-init();
+
+function addQuickTestButton() {
+    const exportActions = document.getElementById('exportActions');
+    if (exportActions) {
+        const testBtn = document.createElement('button');
+        testBtn.textContent = '⚡ Quick Test';
+        testBtn.onclick = quickTest;
+        testBtn.style.marginTop = '8px';
+        exportActions.appendChild(testBtn);
+    }
+}
+
+function debugInit() {
+    console.log('=== DEBUG INIT START ===');
+    
+    // Check if all required elements exist
+    const elements = {
+        enhancedEffectsToggle: document.getElementById('enhanced-effects-toggle'),
+        enhancedEffectsControls: document.getElementById('enhanced-effects-controls'),
+        enhancedFilterType: document.getElementById('enhancedFilterType'),
+        enhancedIntensity: document.getElementById('enhancedIntensity'),
+        enhancedOpacity: document.getElementById('enhancedOpacity'),
+        enhancedScale: document.getElementById('enhancedScale'),
+        timeInput: document.getElementById('time-input')
+    };
+    
+    console.log('DOM Elements check:', elements);
+    
+    // Check global variables
+    console.log('Global variables:', {
+        enhancedEffectsEnabled,
+        currentMode
+    });
+    
+    // Run the regular init
+    init();
+    
+    // Quick test after a delay
+    setTimeout(() => {
+        console.log('Starting enhanced effects test...');
+        
+        // Enable material filters
+        enhancedEffectsEnabled = true;
+        const toggle = document.getElementById('enhanced-effects-toggle');
+        if (toggle) {
+            toggle.classList.add('active');
+            const controls = document.getElementById('enhanced-effects-controls');
+            if (controls) {
+                controls.classList.remove('disabled');
+            }
+        }
+        
+        // Set filter type
+        const filterSelect = document.getElementById('enhancedFilterType');
+        if (filterSelect) {
+            filterSelect.value = 'fabricWeave';
+            console.log('Set filter to fabricWeave');
+        }
+        
+        // Set fade type
+        const fadeSelect = document.getElementById('fadeType');
+        if (fadeSelect) {
+            fadeSelect.value = 'quadratic';
+            console.log('Set fade to quadratic');
+        }
+        
+        // Switch to time mode and trigger
+        currentMode = 'time';
+        updateTimeGradient('12:00');
+        
+        console.log('Test complete - check the gradient for fading effects');
+        
+    }, 500);
+    
+    console.log('=== DEBUG INIT COMPLETE ===');
+}
+
+debugInit();
+
+
+
+
+
+
+
     </script>
 </body>
 </html>
